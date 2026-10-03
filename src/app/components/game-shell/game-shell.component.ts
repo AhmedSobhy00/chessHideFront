@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { GameService } from '../../core/services/game.service';
 import { GameState } from '../../models/game.model';
@@ -9,6 +9,7 @@ import { WaitingRoomComponent } from '../waiting-room/waiting-room.component';
 import { SetupPhaseComponent } from '../setup-phase/setup-phase.component';
 import { GamePhaseComponent } from '../game-phase/game-phase.component';
 import { GameResultComponent } from '../game-result/game-result.component';
+import { SoundService } from '../../core/services/sound.service';
 
 @Component({
   selector: 'app-game-shell',
@@ -27,6 +28,11 @@ import { GameResultComponent } from '../game-result/game-result.component';
       <div class="error-toast" *ngIf="errorMsg" (click)="dismissError()">
         ⚠ {{ errorMsg }}
       </div>
+
+      <!-- Mute Toggle -->
+      <button class="mute-btn" (click)="toggleMute()" [attr.aria-label]="isMuted ? 'Unmute' : 'Mute'">
+        {{ isMuted ? '🔇' : '🔊' }}
+      </button>
 
       <!-- Direct Share Link Join Screen -->
       <div class="direct-join-overlay" *ngIf="urlGameId && (!state || !state.gameId)">
@@ -78,6 +84,7 @@ import { GameResultComponent } from '../game-result/game-result.component';
             <div class="icon">⚡</div>
             <h2>Connection Lost</h2>
             <p>Waiting for opponent to reconnect…</p>
+            <button class="btn-leave" (click)="leaveGame()">Leave Game</button>
           </div>
         </div>
       </ng-container>
@@ -118,7 +125,22 @@ import { GameResultComponent } from '../game-result/game-result.component';
     .abandoned-card { text-align: center; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 1.5rem; padding: 3rem 2rem; }
     .abandoned-card .icon { font-size: 3rem; margin-bottom: 0.75rem; }
     .abandoned-card h2 { color: #e8e8e8; margin: 0 0 0.5rem; }
-    .abandoned-card p { color: #a0a8b8; margin: 0; }
+    .abandoned-card p { color: #a0a8b8; margin: 0 0 1.5rem; }
+    .btn-leave {
+      background: rgba(220,60,60,0.15); color: #e07070; border: 1px solid rgba(220,60,60,0.3);
+      padding: 0.6rem 1.4rem; border-radius: 0.75rem; cursor: pointer; font-family: inherit;
+      font-size: 0.9rem; font-weight: 600; transition: all 0.2s;
+    }
+    .btn-leave:hover { background: rgba(220,60,60,0.25); }
+    
+    .mute-btn {
+      position: absolute; top: 1rem; right: 1rem; z-index: 100;
+      background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+      color: #fff; width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; cursor: pointer; transition: all 0.2s;
+    }
+    .mute-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.05); }
 
     /* Direct Share Link Join Overlay */
     .direct-join-overlay {
@@ -194,8 +216,23 @@ export class GameShellComponent implements OnInit, OnDestroy {
 
   constructor(
     private gameService: GameService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private router: Router,
+    private sound: SoundService
   ) {}
+
+  get isMuted(): boolean {
+    return this.sound.isMuted;
+  }
+
+  toggleMute(): void {
+    this.sound.toggleMute();
+  }
+
+  leaveGame(): void {
+    this.gameService.clearSession();
+    this.router.navigate(['/']);
+  }
 
   ngOnInit(): void {
     this.subs.push(

@@ -31,8 +31,11 @@ import { GameState } from '../../models/game.model';
           <h2>Game Code</h2>
           <div class="game-id-box">
             <span class="game-id">{{ state?.gameId }}</span>
-            <button class="copy-btn" (click)="copyId()" [class.copied]="copied">
-              {{ copied ? '✓ Copied!' : '⎘ Copy Code' }}
+            <button class="copy-btn" (click)="copyId()" [title]="'Copy Code'">
+              {{ copied ? '✓' : '⎘' }} Code
+            </button>
+            <button class="copy-btn" (click)="copyLink()" [title]="'Copy Invite Link'">
+              {{ copiedLink ? '✓' : '🔗' }} Link
             </button>
           </div>
         </div>
@@ -265,6 +268,7 @@ import { GameState } from '../../models/game.model';
 export class WaitingRoomComponent implements OnInit, OnDestroy {
   state: GameState | null = null;
   copied = false;
+  copiedLink = false;
   private sub?: Subscription;
 
   get isHost(): boolean {
@@ -285,6 +289,14 @@ export class WaitingRoomComponent implements OnInit, OnDestroy {
     navigator.clipboard.writeText(this.state?.gameId ?? '').then(() => {
       this.copied = true;
       setTimeout(() => this.copied = false, 2000);
+    });
+  }
+
+  copyLink(): void {
+    const url = `${window.location.origin}/game/${this.state?.gameId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      this.copiedLink = true;
+      setTimeout(() => this.copiedLink = false, 2000);
     });
   }
 

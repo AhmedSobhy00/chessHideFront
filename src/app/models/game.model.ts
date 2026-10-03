@@ -76,6 +76,7 @@ export interface MoveMadeEvent {
   enPassantTarget: string | null;
   isEnPassant: boolean;
   moveNotation: string;
+  sanMoveNotation: string;
   moveNumber: number;
 }
 
@@ -102,6 +103,7 @@ export interface GameStateRestoredEvent {
   currentTurn?: PieceColor;
   isCheck?: boolean;
   moveHistory?: string[];
+  sanMoveHistory?: string[];
   enPassantTarget?: string | null;
   result?: string;
   winner?: PieceColor | null;
@@ -134,6 +136,7 @@ export interface GameState {
   legalMoves: string[];
   enPassantTarget: string | null;
   moveHistory: string[];
+  sanMoveHistory: string[];
   capturedByWhite: { type: PieceType }[];
   capturedByBlack: { type: PieceType }[];
 
@@ -166,6 +169,7 @@ export function createEmptyGameState(): GameState {
     legalMoves: [],
     enPassantTarget: null,
     moveHistory: [],
+    sanMoveHistory: [],
     capturedByWhite: [],
     capturedByBlack: [],
     drawOfferedToMe: false,

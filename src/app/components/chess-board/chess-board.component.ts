@@ -56,7 +56,11 @@ interface Square {
                 [class.winning-king]="sq.isWinningKing"
                 [class.losing-king]="sq.isLosingKing"
                 [class.shake]="sq.isShaking"
+                [attr.tabindex]="disabled ? null : 0"
+                [attr.aria-label]="getAriaLabel(sq)"
                 (click)="onSquareClick(sq)"
+                (keydown.enter)="onSquareClick(sq)"
+                (keydown.space)="onSquareClick(sq); $event.preventDefault()"
                 (dragover)="onDragOver($event)"
                 (drop)="onDrop($event, sq)"
                 (touchstart)="onTouchStart($event, sq)"
@@ -126,12 +130,12 @@ interface Square {
     .board-inner { display: flex; }
     .file-labels {
       display: flex; padding-left: 1.4rem; padding-right: 1.4rem;
-      font-size: 0.7rem; color: #888; letter-spacing: 0.05em;
+      font-size: 0.7rem; color: #ccc; letter-spacing: 0.05em;
     }
     .file-labels.flipped { flex-direction: row-reverse; }
     .file-labels span { width: var(--sq, 72px); text-align: center; }
     .rank-label-col { display: flex; flex-direction: column; justify-content: space-around; width: 1.4rem; }
-    .rank-label { font-size: 0.7rem; color: #888; text-align: center; height: var(--sq, 72px); display: flex; align-items: center; justify-content: center; }
+    .rank-label { font-size: 0.7rem; color: #ccc; text-align: center; height: var(--sq, 72px); display: flex; align-items: center; justify-content: center; }
     .squares {
       display: grid; grid-template-columns: repeat(8, var(--sq, 72px)); grid-template-rows: repeat(8, var(--sq, 72px));
       border: 3px solid #333; border-radius: 6px; overflow: hidden;
@@ -385,7 +389,7 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
     const vh = window.innerHeight;
 
     const maxFromWidth = Math.floor((vw - 44) / 8);
-    const maxFromHeight = Math.floor((vh - 270) / 8);
+    const maxFromHeight = Math.floor((vh - 340) / 8);
     const calculated = Math.min(maxFromWidth, maxFromHeight);
 
     let size = this.squareSize;
@@ -472,6 +476,20 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
       const targetKey = `${sq.row}_${sq.col}`;
       this.triggerDenial([selKey, targetKey]);
       return;
+    }
+
+    // Intercept promotion clicks
+    if (this.selectedSquare && this.legalMoves.includes(alg)) {
+      const selPos = this.gameService.fromAlgebraic(this.selectedSquare);
+      const piece = this.pieces.find(p => p.row === selPos.row && p.col === selPos.col);
+      if (piece?.type === 'Pawn') {
+        const isPromoRow = (piece.color === 'White' && sq.row === 7) || (piece.color === 'Black' && sq.row === 0);
+        if (isPromoRow) {
+          this.pendingPromotion = { fromRow: selPos.row, fromCol: selPos.col, toRow: sq.row, toCol: sq.col };
+          this.promotionPending = true;
+          return; // Don't emit squareClicked so we don't trigger normal move handling
+        }
+      }
     }
 
     this.squareClicked.emit({
@@ -666,7 +684,7 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
       King: '♔', Queen: '♕', Rook: '♖', Bishop: '♗', Knight: '♘', Pawn: '♙'
     };
     const black: Record<PieceType, string> = {
-      King: '♚', Queen: '♛', Rook: '♜', Bishop: '♝', Knight: '♞', Pawn: '♟'
+      King: '♚', Queen: '♛', Rook: '♜', Bishop: '♝', Knight: '♞', Pawn: '♟\uFE0E'
     };
     return piece.color === 'White' ? white[piece.type] : black[piece.type];
   }
@@ -678,5 +696,18 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
     return this.yourColor === 'White' ?
       ({ King: '', Queen: '♕', Rook: '♖', Bishop: '♗', Knight: '♘', Pawn: '' } as any)[type]
       : symbols[type];
+  }
+
+  getAriaLabel(sq: Square): string {
+    const alg = this.gameService.toAlgebraic(sq.row, sq.col);
+    let label = alg;
+    if (sq.piece) {
+      label += `, ${sq.piece.color} ${sq.piece.type}`;
+    } else {
+      label += `, empty`;
+    }
+    if (sq.isHighlighted) label += ', legal move';
+    if (sq.isInCheck) label += ', in check';
+    return label;
   }
 }

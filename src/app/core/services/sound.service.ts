@@ -3,6 +3,11 @@ import { Injectable } from '@angular/core';
 @Injectable({ providedIn: 'root' })
 export class SoundService {
   private ctx: AudioContext | null = null;
+  public isMuted = false;
+
+  toggleMute(): void {
+    this.isMuted = !this.isMuted;
+  }
 
   private initCtx(): AudioContext {
     if (!this.ctx) {
@@ -17,6 +22,7 @@ export class SoundService {
 
   // ── Move piece (clean wood click) ──────────────────────────────────────────
   playMove(): void {
+    if (this.isMuted) return;
     try {
       const ctx = this.initCtx();
       const osc = ctx.createOscillator();
@@ -41,6 +47,7 @@ export class SoundService {
 
   // ── Capture piece (heavy impact knock) ─────────────────────────────────────
   playCapture(): void {
+    if (this.isMuted) return;
     try {
       const ctx = this.initCtx();
       const osc = ctx.createOscillator();
@@ -63,6 +70,7 @@ export class SoundService {
 
   // ── Check alert (two-tone ping) ─────────────────────────────────────────────
   playCheck(): void {
+    if (this.isMuted) return;
     try {
       const ctx = this.initCtx();
       const now = ctx.currentTime;
@@ -93,6 +101,7 @@ export class SoundService {
 
   // ── Game start / Reveal (bright 3-note arpeggio) ───────────────────────────
   playGameStart(): void {
+    if (this.isMuted) return;
     try {
       const ctx = this.initCtx();
       const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
@@ -118,6 +127,7 @@ export class SoundService {
 
   // ── Victory fanfare ────────────────────────────────────────────────────────
   playVictory(): void {
+    if (this.isMuted) return;
     try {
       const ctx = this.initCtx();
       const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
@@ -143,6 +153,7 @@ export class SoundService {
 
   // ── Defeat / Loss ──────────────────────────────────────────────────────────
   playDefeat(): void {
+    if (this.isMuted) return;
     try {
       const ctx = this.initCtx();
       const notes = [392.00, 311.13, 261.63]; // G4, Eb4, C4
@@ -168,6 +179,7 @@ export class SoundService {
 
   // ── Ready click ────────────────────────────────────────────────────────────
   playReady(): void {
+    if (this.isMuted) return;
     try {
       const ctx = this.initCtx();
       const osc = ctx.createOscillator();
@@ -190,6 +202,7 @@ export class SoundService {
 
   // ── Countdown beep (for match start 3..2..1) ────────────────────────────────
   playCountdownBeep(isFinal: boolean = false): void {
+    if (this.isMuted) return;
     try {
       const ctx = this.initCtx();
       const osc = ctx.createOscillator();
@@ -213,6 +226,7 @@ export class SoundService {
 
   // ── Denial / Illegal move buzz sound ──────────────────────────────────────
   playDenial(): void {
+    if (this.isMuted) return;
     try {
       const ctx = this.initCtx();
       const now = ctx.currentTime;

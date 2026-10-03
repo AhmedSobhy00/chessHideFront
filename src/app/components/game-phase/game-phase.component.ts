@@ -111,6 +111,18 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
           </span>
         </div>
       </div>
+
+      <!-- Resign Confirmation Dialog -->
+      <div class="resign-overlay" *ngIf="showResignConfirm">
+        <div class="resign-dialog">
+          <h3>Are you sure?</h3>
+          <p>Do you really want to resign from this match?</p>
+          <div class="dialog-actions">
+            <button class="btn-cancel-dialog" (click)="showResignConfirm = false">Cancel</button>
+            <button class="btn-confirm-resign" (click)="executeResign()">Yes, Resign</button>
+          </div>
+        </div>
+      </div>
     </div>
   `,
   styles: [`
@@ -225,12 +237,40 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
       .move-num { font-size: 0.7rem; }
       .move { font-size: 0.76rem; }
     }
+
+    /* Resign Dialog */
+    .resign-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px); z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1.5rem; animation: fadeIn 0.2s ease-out;
+    }
+    .resign-dialog {
+      background: #1e2538; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 1.25rem; padding: 2rem; max-width: 360px; width: 100%;
+      text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      animation: modalSlide 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .resign-dialog h3 { margin: 0 0 0.75rem; color: #e8e8e8; font-size: 1.2rem; }
+    .resign-dialog p { color: #a0a8b8; font-size: 0.95rem; margin: 0 0 1.5rem; }
+    .dialog-actions { display: flex; gap: 0.75rem; justify-content: center; }
+    .btn-cancel-dialog, .btn-confirm-resign {
+      padding: 0.7rem 1.2rem; border-radius: 0.75rem; border: none;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: inherit;
+    }
+    .btn-cancel-dialog { background: rgba(255,255,255,0.1); color: #e8e8e8; transition: background 0.2s; }
+    .btn-cancel-dialog:hover { background: rgba(255,255,255,0.15); }
+    .btn-confirm-resign { background: #e05050; color: #fff; transition: background 0.2s; }
+    .btn-confirm-resign:hover { background: #ff5555; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes modalSlide { from { transform: translateY(20px) scale(0.9); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
   `]
 })
 export class GamePhaseComponent implements OnInit, OnDestroy {
   state!: GameState;
   squareSize = 72;
   lastMove: { from: string; to: string } | null = null;
+  showResignConfirm = false;
   private pendingPromotion: { from: string; to: string } | null = null;
   private subs: Subscription[] = [];
 
@@ -284,7 +324,7 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
   }
 
   get pairedMoves(): [string, string?][] {
-    const hist = this.state?.moveHistory ?? [];
+    const hist = this.state?.sanMoveHistory?.length ? this.state.sanMoveHistory : (this.state?.moveHistory ?? []);
     const pairs: [string, string?][] = [];
     for (let i = 0; i < hist.length; i += 2)
       pairs.push([hist[i], hist[i+1]]);
@@ -315,7 +355,7 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const maxW = Math.floor((vw - 44) / 8);
-    const maxH = Math.floor((vh - 270) / 8);
+    const maxH = Math.floor((vh - 340) / 8);
     const calculated = Math.min(maxW, maxH);
 
     if (vw < 480) this.squareSize = Math.max(28, Math.min(40, calculated));
@@ -338,8 +378,8 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
          (movingPiece.color === 'Black' && e.row === 0));
 
       if (isPromo) {
-        this.pendingPromotion = { from: s.selectedSquare, to: alg };
-        await this.gameService.makeMove(s.selectedSquare, alg, 'queen');
+        // Handled by board component intercepting the click and emitting promotionChosen
+        return;
       } else {
         await this.gameService.makeMove(s.selectedSquare, alg);
       }
@@ -379,7 +419,12 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
   async declineDraw(): Promise<void> { await this.gameService.declineDraw(); }
 
   confirmResign(): void {
-    if (confirm('Are you sure you want to resign?')) this.gameService.resign();
+    this.showResignConfirm = true;
+  }
+
+  executeResign(): void {
+    this.showResignConfirm = false;
+    this.gameService.resign();
   }
 
   miniPiece(type: PieceType, color: string): string {

@@ -206,6 +206,7 @@ export class GameService implements OnDestroy {
         capturedByWhite: [],
         capturedByBlack: [],
         moveHistory: [],
+        sanMoveHistory: [],
         selectedSquare: null,
         legalMoves: [],
         isCheck: false,
@@ -214,6 +215,7 @@ export class GameService implements OnDestroy {
 
     this.signalr.on<MoveMadeEvent>('MoveMade', e => {
       const history = [...this.state.moveHistory, e.moveNotation];
+      const sanHistory = [...this.state.sanMoveHistory, e.sanMoveNotation];
       const captured = this.state.capturedByWhite.slice();
       const capturedB = this.state.capturedByBlack.slice();
 
@@ -235,6 +237,7 @@ export class GameService implements OnDestroy {
         currentTurn: e.currentTurn,
         isCheck: e.isCheck,
         moveHistory: history,
+        sanMoveHistory: sanHistory,
         capturedByWhite: captured,
         capturedByBlack: capturedB,
         selectedSquare: null,
@@ -298,6 +301,7 @@ export class GameService implements OnDestroy {
           currentTurn: e.currentTurn ?? 'White',
           isCheck: e.isCheck ?? false,
           moveHistory: e.moveHistory ?? [],
+          sanMoveHistory: e.sanMoveHistory ?? [],
           enPassantTarget: e.enPassantTarget ?? null,
         });
       } else if (e.phase === 'Finished') {
@@ -349,6 +353,11 @@ export class GameService implements OnDestroy {
 
   clearSession(): void {
     this.resetState();
+    this.disconnect();
+  }
+
+  disconnect(): void {
+    this.signalr.disconnect();
   }
 
   // ════════════════════════════════════════════════════════════════════════
