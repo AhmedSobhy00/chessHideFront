@@ -1,5 +1,5 @@
 import {
-  Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener
+  Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener, ElementRef, AfterViewInit
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChessPiece, PieceColor, PieceType } from '../../models/game.model';
@@ -111,7 +111,17 @@ interface Square {
     </div>
   `,
   styles: [`
-    :host { display: block; user-select: none; }
+    :host {
+      display: block;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    .board-wrap, .board, .board-inner, .squares, .square, .piece {
+      touch-action: none;
+      -webkit-touch-callout: none;
+    }
 
     .board-wrap { position: relative; }
     .board { display: inline-flex; flex-direction: column; }
@@ -279,7 +289,7 @@ interface Square {
     }
   `]
 })
-export class ChessBoardComponent implements OnChanges {
+export class ChessBoardComponent implements OnChanges, AfterViewInit {
   @Input() pieces: ChessPiece[] = [];
   @Input() yourColor: PieceColor = 'White';
   @Input() mode: 'setup' | 'play' = 'play';
@@ -329,7 +339,20 @@ export class ChessBoardComponent implements OnChanges {
     return this.flipBoard ? ['1','2','3','4','5','6','7','8'] : ['8','7','6','5','4','3','2','1'];
   }
 
-  constructor(private gameService: GameService, private sound: SoundService) {}
+  constructor(
+    private gameService: GameService,
+    private sound: SoundService,
+    private el: ElementRef
+  ) {}
+
+  ngAfterViewInit(): void {
+    const nativeEl = this.el.nativeElement;
+    nativeEl.addEventListener('touchmove', (e: TouchEvent) => {
+      if (this.touchFromSq) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
 
   @HostListener('window:resize')
   onResize(): void {
@@ -346,16 +369,16 @@ export class ChessBoardComponent implements OnChanges {
     const vh = window.innerHeight;
 
     const maxFromWidth = Math.floor((vw - 44) / 8);
-    const maxFromHeight = Math.floor((vh - 240) / 8);
+    const maxFromHeight = Math.floor((vh - 270) / 8);
     const calculated = Math.min(maxFromWidth, maxFromHeight);
 
     let size = this.squareSize;
     if (vw < 480) {
-      size = Math.max(32, Math.min(42, calculated));
+      size = Math.max(28, Math.min(40, calculated));
     } else if (vw < 768) {
-      size = Math.max(40, Math.min(56, calculated));
+      size = Math.max(38, Math.min(54, calculated));
     } else {
-      size = Math.max(52, Math.min(72, calculated));
+      size = Math.max(50, Math.min(72, calculated));
     }
     document.documentElement.style.setProperty('--sq', `${size}px`);
   }

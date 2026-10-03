@@ -315,12 +315,12 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const maxW = Math.floor((vw - 44) / 8);
-    const maxH = Math.floor((vh - 240) / 8);
+    const maxH = Math.floor((vh - 270) / 8);
     const calculated = Math.min(maxW, maxH);
 
-    if (vw < 480) this.squareSize = Math.max(32, Math.min(42, calculated));
-    else if (vw < 768) this.squareSize = Math.max(40, Math.min(56, calculated));
-    else this.squareSize = Math.max(52, Math.min(72, calculated));
+    if (vw < 480) this.squareSize = Math.max(28, Math.min(40, calculated));
+    else if (vw < 768) this.squareSize = Math.max(38, Math.min(54, calculated));
+    else this.squareSize = Math.max(50, Math.min(72, calculated));
   }
 
   async onSquareClick(e: { row: number; col: number; algebraic: string }): Promise<void> {
