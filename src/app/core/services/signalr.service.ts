@@ -23,7 +23,10 @@ export class SignalRService {
     const hubUrl = this.configService.apiUrl;
 
     this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl(hubUrl)
+      .withUrl(hubUrl, {
+        skipNegotiation: false,
+        transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling
+      })
       .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
       .configureLogging(signalR.LogLevel.Warning)
       .build();
@@ -37,8 +40,14 @@ export class SignalRService {
     this.hubConnection.onreconnecting(() => this.isConnected$.next(false));
     this.hubConnection.onclose(() => this.isConnected$.next(false));
 
-    await this.hubConnection.start();
-    this.isConnected$.next(true);
+    try {
+      await this.hubConnection.start();
+      this.isConnected$.next(true);
+    } catch (err: any) {
+      this.isConnected$.next(false);
+      console.error('SignalR Connection Error:', err);
+      throw new Error(`Could not connect to backend server at (${hubUrl}). ${err.message || ''}`);
+    }
 
     // Re-register handlers after connection (needed if connect() called multiple times)
     this.eventHandlers.forEach((_, eventName) => {
