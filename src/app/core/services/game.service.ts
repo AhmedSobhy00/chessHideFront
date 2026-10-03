@@ -103,6 +103,8 @@ export class GameService implements OnDestroy {
 
   async reconnect(gameId: string, playerId: string): Promise<void> {
     await this.connect();
+    // Pre-patch the state with session info so the UI knows we are in this game
+    this.patch({ gameId, playerId });
     await this.signalr.invoke('Reconnect', { gameId, playerId });
   }
 
@@ -267,7 +269,9 @@ export class GameService implements OnDestroy {
     });
 
     this.signalr.on('OpponentDisconnected', () => {
-      // Could show a toast
+      if (this.state.phase === 'WaitingForPlayers') {
+        this.patch({ opponentName: '' });
+      }
     });
 
     this.signalr.on('OpponentReconnected', () => {
@@ -286,7 +290,15 @@ export class GameService implements OnDestroy {
     });
 
     this.signalr.on<GameStateRestoredEvent>('GameStateRestored', e => {
-      if (e.phase === 'Setup') {
+      if (e.yourColor) this.patch({ yourColor: e.yourColor });
+      if (e.gameMode)  this.patch({ gameMode: e.gameMode });
+
+      if (e.phase === 'WaitingForPlayers') {
+        this.patch({
+          phase: 'WaitingForPlayers',
+          opponentName: (e as any).opponentName || ''
+        });
+      } else if (e.phase === 'Setup') {
         this.patch({
           phase: 'Setup',
           setupEndsAt: e.setupEndsAt ? new Date(e.setupEndsAt) : null,
