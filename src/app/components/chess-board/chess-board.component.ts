@@ -62,6 +62,7 @@ interface Square {
                 (touchstart)="onTouchStart($event, sq)"
                 (touchmove)="onTouchMove($event)"
                 (touchend)="onTouchEnd($event)"
+                (touchcancel)="onTouchCancel()"
               >
                 <!-- Golden crown on top-left of winning king square -->
                 <div class="winner-crown" *ngIf="sq.isWinningKing">👑</div>
@@ -537,13 +538,24 @@ export class ChessBoardComponent implements OnChanges, AfterViewInit {
   onTouchEnd(e: TouchEvent): void {
     this.lastTouchTime = Date.now();
 
-    if (!this.touchFromSq) return;
+    if (!this.touchFromSq) {
+      this.removeGhostPiece();
+      return;
+    }
 
     const touch = e.changedTouches[0];
-    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+    const clientX = touch.clientX;
+    const clientY = touch.clientY;
+
+    // 1. MUST remove the ghost piece element FIRST so elementFromPoint hits the underlying square!
+    this.removeGhostPiece();
+
+    // 2. Query element under touch position
+    const targetEl = document.elementFromPoint(clientX, clientY);
     const sqEl = targetEl?.closest('.square') as HTMLElement | null;
 
-    this.removeGhostPiece();
+    const fromSq = this.touchFromSq;
+    this.touchFromSq = null;
 
     if (sqEl) {
       const rowAttr = sqEl.getAttribute('data-row');
@@ -551,8 +563,6 @@ export class ChessBoardComponent implements OnChanges, AfterViewInit {
       if (rowAttr !== null && colAttr !== null) {
         const toRow = parseInt(rowAttr, 10);
         const toCol = parseInt(colAttr, 10);
-        const fromSq = this.touchFromSq;
-        this.touchFromSq = null;
 
         if (fromSq.row !== toRow || fromSq.col !== toCol) {
           this.executeMoveOrDrag(fromSq.row, fromSq.col, toRow, toCol);
@@ -560,7 +570,10 @@ export class ChessBoardComponent implements OnChanges, AfterViewInit {
         }
       }
     }
+  }
 
+  onTouchCancel(): void {
+    this.removeGhostPiece();
     this.touchFromSq = null;
   }
 
