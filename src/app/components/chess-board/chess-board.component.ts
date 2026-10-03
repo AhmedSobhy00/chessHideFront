@@ -25,14 +25,14 @@ interface Square {
     <div class="board-wrap" [class.flipped]="flipBoard">
       <div class="board">
         <!-- File labels (a–h) -->
-        <div class="file-labels" [class.flipped]="flipBoard">
-          <span *ngFor="let f of files">{{ f }}</span>
+        <div class="file-labels">
+          <span *ngFor="let f of displayedFiles">{{ f }}</span>
         </div>
 
         <!-- Rank labels + rows -->
         <div class="board-inner">
           <div class="rank-label-col">
-            <div *ngFor="let r of ranks" class="rank-label">{{ r }}</div>
+            <div *ngFor="let r of displayedRanks" class="rank-label">{{ r }}</div>
           </div>
 
           <div class="squares">
@@ -186,6 +186,14 @@ export class ChessBoardComponent implements OnChanges {
   private dragFrom: { row: number; col: number } | null = null;
 
   get flipBoard(): boolean { return this.yourColor === 'Black'; }
+
+  get displayedFiles(): string[] {
+    return this.flipBoard ? ['h','g','f','e','d','c','b','a'] : ['a','b','c','d','e','f','g','h'];
+  }
+
+  get displayedRanks(): string[] {
+    return this.flipBoard ? ['1','2','3','4','5','6','7','8'] : ['8','7','6','5','4','3','2','1'];
+  }
 
   constructor(private gameService: GameService) {}
 

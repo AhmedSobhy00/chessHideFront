@@ -6,7 +6,7 @@ import { Subject, BehaviorSubject } from 'rxjs';
 export class SignalRService {
 
   private hubConnection: signalR.HubConnection | null = null;
-  private readonly HUB_URL = 'http://localhost:5248/gamehub';
+  private readonly HUB_URL = 'http://localhost:5232/gamehub';
 
   // Expose connection state
   readonly isConnected$ = new BehaviorSubject<boolean>(false);

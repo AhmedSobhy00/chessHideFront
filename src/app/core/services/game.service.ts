@@ -80,10 +80,12 @@ export class GameService implements OnDestroy {
   }
 
   async acceptDraw(): Promise<void> {
+    this.patch({ drawOfferedToMe: false });
     await this.signalr.invoke('AcceptDraw', this.state.gameId);
   }
 
   async declineDraw(): Promise<void> {
+    this.patch({ drawOfferedToMe: false });
     await this.signalr.invoke('DeclineDraw', this.state.gameId);
   }
 
@@ -191,6 +193,7 @@ export class GameService implements OnDestroy {
         selectedSquare: null,
         legalMoves: [],
         enPassantTarget: e.enPassantTarget,
+        drawOfferedToMe: false,
       });
     });
 
@@ -203,7 +206,7 @@ export class GameService implements OnDestroy {
     });
 
     this.signalr.on('DrawDeclined', () => {
-      // Could show a notification — for now just clear
+      this.patch({ drawOfferedToMe: false });
     });
 
     this.signalr.on('OpponentDisconnected', () => {
