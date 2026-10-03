@@ -234,10 +234,13 @@ interface Square {
     .promo-btn:hover { background: rgba(240,192,64,0.2); border-color: #f0c040; transform: translateY(-4px) scale(1.08); }
 
     @media (max-width: 480px) {
-      .file-labels, .rank-label-col { font-size: 0.6rem; }
-      .file-labels { padding-left: 0.9rem; }
-      .rank-label-col { width: 0.9rem; }
-      .promo-btn { font-size: 2rem; padding: 0.6rem 0.7rem; }
+      .file-labels, .rank-label-col { font-size: 0.55rem; }
+      .file-labels { padding-left: 0.8rem; }
+      .rank-label-col { width: 0.8rem; }
+      .rank-label { height: var(--sq, 40px); }
+      .squares { border-width: 2px; }
+      .promo-btn { font-size: 1.8rem; padding: 0.5rem 0.6rem; }
+      .piece { font-size: calc(var(--sq, 40px) * 0.72); }
     }
   `]
 })
@@ -302,11 +305,19 @@ export class ChessBoardComponent implements OnChanges {
 
   private updateSquareSize(): void {
     const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    const maxFromWidth = Math.floor((vw - 44) / 8);
+    const maxFromHeight = Math.floor((vh - 240) / 8);
+    const calculated = Math.min(maxFromWidth, maxFromHeight);
+
     let size = this.squareSize;
     if (vw < 480) {
-      size = Math.max(36, Math.floor((vw - 32) / 8));
+      size = Math.max(32, Math.min(42, calculated));
     } else if (vw < 768) {
-      size = Math.max(48, Math.floor((vw - 64) / 8));
+      size = Math.max(40, Math.min(56, calculated));
+    } else {
+      size = Math.max(52, Math.min(72, calculated));
     }
     document.documentElement.style.setProperty('--sq', `${size}px`);
   }

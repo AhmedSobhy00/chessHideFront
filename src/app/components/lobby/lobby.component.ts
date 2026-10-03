@@ -159,6 +159,24 @@ import { GameMode } from '../../models/game.model';
     .join-row .btn { white-space: nowrap; padding: 0.75rem 1.2rem; }
     .error-msg { margin-top: 1rem; color: #ff7070; font-size: 0.9rem; text-align: center; }
     .loading { margin-top: 1rem; color: #a0a8b8; text-align: center; font-size: 0.9rem; }
+
+    @media (max-width: 480px) {
+      .lobby-container { gap: 1rem; padding: 1rem 0.75rem; }
+      .brand-icon { font-size: 3.2rem; margin-bottom: 0.2rem; }
+      .brand-title { font-size: 1.5rem; margin-bottom: 0.25rem; }
+      .brand-tagline { font-size: 0.85rem; }
+      .lobby-card { padding: 1.25rem 1rem; border-radius: 1.2rem; }
+      .name-field { margin-bottom: 1rem; }
+      input[type="text"] { padding: 0.65rem 0.85rem; font-size: 0.92rem; }
+      .mode-selector { margin-bottom: 1rem; }
+      .mode-options { gap: 0.5rem; }
+      .mode-btn { padding: 0.6rem 0.3rem; }
+      .mode-icon { font-size: 1.2rem; margin-bottom: 0.1rem; }
+      .mode-title { font-size: 0.78rem; }
+      .mode-desc { font-size: 0.65rem; }
+      .btn { padding: 0.7rem 1rem; font-size: 0.9rem; }
+      .join-row .btn { padding: 0.65rem 1rem; }
+    }
   `]
 })
 export class LobbyComponent implements OnInit, OnDestroy {

@@ -243,6 +243,23 @@ import { GameState } from '../../models/game.model';
     .countdown-sub { color: #a0a8b8; font-size: 1.1rem; margin-top: 1rem; }
     @keyframes pop-in { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
     @keyframes number-pulse { from{transform:scale(0.9);opacity:0.8} to{transform:scale(1.1);opacity:1} }
+
+    @media (max-width: 480px) {
+      .lobby-container { padding: 1rem 0.75rem; }
+      .lobby-card { padding: 1.25rem 1rem; gap: 1rem; border-radius: 1.2rem; }
+      .game-id { font-size: 1.6rem; letter-spacing: 0.15em; }
+      .game-id-box { padding: 0.5rem 0.75rem; gap: 0.5rem; }
+      .copy-btn { padding: 0.4rem 0.6rem; font-size: 0.75rem; }
+      .player-card { padding: 0.5rem 0.65rem; gap: 0.5rem; }
+      .player-avatar { width: 30px; height: 30px; font-size: 1rem; }
+      .player-name { font-size: 0.85rem; }
+      .player-role { font-size: 0.68rem; }
+      .rules-card { padding: 0.75rem; }
+      .mode-title { font-size: 0.95rem; }
+      .rules-list { font-size: 0.76rem; padding-left: 1rem; gap: 0.3rem; }
+      .btn-start { padding: 0.75rem 1rem; font-size: 0.95rem; }
+      .countdown-number { font-size: 4.5rem; }
+    }
   `]
 })
 export class WaitingRoomComponent implements OnInit, OnDestroy {

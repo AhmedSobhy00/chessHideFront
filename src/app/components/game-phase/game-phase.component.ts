@@ -209,6 +209,22 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     .move { font-size: 0.85rem; font-family: monospace; color: #d0d4df; }
     .move.white { color: #e8e8e8; }
     .move.black { color: #a0a8b8; }
+
+    @media (max-width: 480px) {
+      .game-layout { padding: 0.35rem 0.5rem; gap: 0.35rem; }
+      .player-bar { gap: 0.15rem; }
+      .player-avatar { width: 28px; height: 28px; font-size: 0.85rem; }
+      .player-name { font-size: 0.82rem; }
+      .player-color { font-size: 0.65rem; }
+      .turn-indicator { font-size: 0.72rem; min-width: 65px; }
+      .captured-pieces { min-height: 1rem; }
+      .cap-piece { font-size: 0.95rem; }
+      .status-banner { font-size: 0.82rem; padding: 0.25rem 1rem; }
+      .btn-action { font-size: 0.8rem; padding: 0.4rem 0.9rem; }
+      .move-history { max-height: 55px; padding: 0.3rem 0.5rem; }
+      .move-num { font-size: 0.7rem; }
+      .move { font-size: 0.76rem; }
+    }
   `]
 })
 export class GamePhaseComponent implements OnInit, OnDestroy {
@@ -297,9 +313,14 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
 
   private adjustBoardSize(): void {
     const vw = window.innerWidth;
-    if (vw < 480) this.squareSize = Math.max(36, Math.floor((vw - 32) / 8));
-    else if (vw < 768) this.squareSize = 64;
-    else this.squareSize = 72;
+    const vh = window.innerHeight;
+    const maxW = Math.floor((vw - 44) / 8);
+    const maxH = Math.floor((vh - 240) / 8);
+    const calculated = Math.min(maxW, maxH);
+
+    if (vw < 480) this.squareSize = Math.max(32, Math.min(42, calculated));
+    else if (vw < 768) this.squareSize = Math.max(40, Math.min(56, calculated));
+    else this.squareSize = Math.max(52, Math.min(72, calculated));
   }
 
   async onSquareClick(e: { row: number; col: number; algebraic: string }): Promise<void> {

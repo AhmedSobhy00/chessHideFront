@@ -122,6 +122,17 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     }
     .pulse-core { width: 10px; height: 10px; border-radius: 50%; background: #40a0f0; margin-left: 3px; }
     @keyframes pulsate { 0%{transform:scale(1);opacity:1} 100%{transform:scale(2.5);opacity:0} }
+
+    @media (max-width: 480px) {
+      .setup-container { padding: 0.5rem; gap: 0.6rem; }
+      .phase-badge { font-size: 0.68rem; }
+      .vs-info { font-size: 0.85rem; }
+      .timer-ring { width: 56px; height: 56px; }
+      .timer-value { font-size: 0.92rem; }
+      .timer-label { font-size: 0.65rem; }
+      .instruction { font-size: 0.78rem; max-width: 320px; }
+      .btn-ready { padding: 0.6rem 2rem; font-size: 0.95rem; }
+    }
   `]
 })
 export class SetupPhaseComponent implements OnInit, OnDestroy {
@@ -167,9 +178,14 @@ export class SetupPhaseComponent implements OnInit, OnDestroy {
 
   private adjustBoardSize(): void {
     const vw = window.innerWidth;
-    if (vw < 480) this.squareSize = Math.max(36, Math.floor((vw - 32) / 8));
-    else if (vw < 768) this.squareSize = 60;
-    else this.squareSize = 72;
+    const vh = window.innerHeight;
+    const maxW = Math.floor((vw - 44) / 8);
+    const maxH = Math.floor((vh - 240) / 8);
+    const calculated = Math.min(maxW, maxH);
+
+    if (vw < 480) this.squareSize = Math.max(32, Math.min(42, calculated));
+    else if (vw < 768) this.squareSize = Math.max(40, Math.min(56, calculated));
+    else this.squareSize = Math.max(52, Math.min(72, calculated));
   }
 
   onSquareClick(e: { row: number; col: number; algebraic: string }): void {

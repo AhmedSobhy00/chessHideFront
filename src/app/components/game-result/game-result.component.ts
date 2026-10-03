@@ -102,6 +102,20 @@ import { GameFinishedEvent } from '../../models/game.model';
       transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     .btn-home:hover { background: rgba(255,255,255,0.22); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+
+    @media (max-width: 480px) {
+      .result-overlay { padding: 1rem; }
+      .result-card { padding: 1.75rem 1.25rem; max-width: 320px; border-radius: 1.25rem; }
+      .result-icon { font-size: 3.2rem; margin-bottom: 0.3rem; }
+      .result-title { font-size: 1.6rem; margin-bottom: 0.3rem; }
+      .result-reason { font-size: 0.85rem; }
+      .result-detail { font-size: 0.95rem; margin-bottom: 1.25rem; }
+      .btn-view-board, .btn-home { padding: 0.6rem 0.9rem; font-size: 0.85rem; }
+      .minimized-bar { bottom: 0.75rem; padding: 0.45rem 1rem; }
+      .mini-icon { font-size: 1rem; }
+      .mini-title { font-size: 0.82rem; }
+      .mini-action { font-size: 0.72rem; }
+    }
   `]
 })
 export class GameResultComponent implements OnInit, OnDestroy {
