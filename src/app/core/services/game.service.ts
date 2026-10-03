@@ -71,12 +71,15 @@ export class GameService implements OnDestroy {
   }
 
   async makeMove(from: string, to: string, promotion?: string): Promise<void> {
+    this.patch({ selectedSquare: null, legalMoves: [] });
     await this.signalr.invoke('MakeMove', {
       gameId: this.state.gameId, from, to, promotion: promotion ?? null
     });
   }
 
   async getLegalMoves(from: string): Promise<void> {
+    if (this.state.currentTurn !== this.state.yourColor || this.state.phase !== 'Playing') return;
+    this.patch({ selectedSquare: from });
     await this.signalr.invoke('GetLegalMoves', this.state.gameId, from);
   }
 
@@ -242,7 +245,13 @@ export class GameService implements OnDestroy {
     });
 
     this.signalr.on<LegalMovesEvent>('LegalMoves', e => {
-      this.patch({ legalMoves: e.moves, selectedSquare: e.from });
+      if (
+        this.state.phase === 'Playing' &&
+        this.state.currentTurn === this.state.yourColor &&
+        this.state.selectedSquare === e.from
+      ) {
+        this.patch({ legalMoves: e.moves });
+      }
     });
 
     this.signalr.on('DrawOffered', () => {
