@@ -333,8 +333,13 @@ export class GameService implements OnDestroy {
     return raw ? JSON.parse(raw) : null;
   }
 
-  clearSession(): void {
+  resetState(): void {
     sessionStorage.removeItem(this.PLAYER_KEY);
+    this._state$.next(createEmptyGameState());
+  }
+
+  clearSession(): void {
+    this.resetState();
   }
 
   // ════════════════════════════════════════════════════════════════════════

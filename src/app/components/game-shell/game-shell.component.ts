@@ -198,8 +198,15 @@ export class GameShellComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    const rawId = this.route.snapshot.paramMap.get('id');
-    this.urlGameId = rawId ? rawId.trim().toUpperCase() : null;
+    this.subs.push(
+      this.route.paramMap.subscribe(params => {
+        const rawId = params.get('id');
+        this.urlGameId = rawId ? rawId.trim().toUpperCase() : null;
+        if (!this.urlGameId && this.state?.gameId) {
+          this.gameService.resetState();
+        }
+      })
+    );
 
     this.subs.push(
       this.gameService.state$.subscribe(s => { this.state = s; })
