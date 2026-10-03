@@ -4,5 +4,6 @@
  * to change the backend API / SignalR Hub URL without re-building the project.
  */
 window.APP_CONFIG = {
-  apiUrl: "http://localhost:5232/gamehub"
+  // apiUrl: "http://localhost:5232/gamehub"
+  apiUrl: "http://hiddenchess.runasp.net/gamehub"
 };
