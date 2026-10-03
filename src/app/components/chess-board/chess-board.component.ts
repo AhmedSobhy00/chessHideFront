@@ -16,6 +16,8 @@ interface Square {
   isSetupZone: boolean;
   isLastMove: boolean;
   isInCheck: boolean;
+  isWinningKing: boolean;
+  isLosingKing: boolean;
   isShaking: boolean;
 }
 
@@ -31,9 +33,9 @@ interface Square {
           <span *ngFor="let f of displayedFiles">{{ f }}</span>
         </div>
 
-        <!-- Rank labels + rows -->
+        <!-- Rank labels + rows + Right rank labels for symmetric margins -->
         <div class="board-inner">
-          <div class="rank-label-col">
+          <div class="rank-label-col left">
             <div *ngFor="let r of displayedRanks" class="rank-label">{{ r }}</div>
           </div>
 
@@ -42,6 +44,8 @@ interface Square {
               <div
                 *ngFor="let sq of row; trackBy: trackBySq"
                 class="square"
+                [attr.data-row]="sq.row"
+                [attr.data-col]="sq.col"
                 [class.light]="sq.isLight"
                 [class.dark]="!sq.isLight"
                 [class.highlighted]="sq.isHighlighted"
@@ -49,13 +53,19 @@ interface Square {
                 [class.setup-zone]="sq.isSetupZone"
                 [class.last-move]="sq.isLastMove"
                 [class.in-check]="sq.isInCheck"
+                [class.winning-king]="sq.isWinningKing"
+                [class.losing-king]="sq.isLosingKing"
                 [class.shake]="sq.isShaking"
                 (click)="onSquareClick(sq)"
                 (dragover)="onDragOver($event)"
                 (drop)="onDrop($event, sq)"
                 (touchstart)="onTouchStart($event, sq)"
-                (touchend)="onTouchEnd($event, sq)"
+                (touchmove)="onTouchMove($event)"
+                (touchend)="onTouchEnd($event)"
               >
+                <!-- Golden crown on top-left of winning king square -->
+                <div class="winner-crown" *ngIf="sq.isWinningKing">👑</div>
+
                 <!-- Legal-move dot / ring -->
                 <div class="move-dot" *ngIf="sq.isHighlighted && !sq.piece"></div>
                 <div class="move-ring" *ngIf="sq.isHighlighted && sq.piece"></div>
@@ -67,7 +77,6 @@ interface Square {
                   [class.white]="sq.piece.color === 'White'"
                   [class.black]="sq.piece.color === 'Black'"
                   [class.draggable]="canDrag(sq.piece)"
-                  [class.fallen-king]="isFallenKing(sq.piece)"
                   draggable="true"
                   (dragstart)="onDragStart($event, sq)"
                   (dragend)="onDragEnd()"
@@ -77,6 +86,10 @@ interface Square {
                 </div>
               </div>
             </ng-container>
+          </div>
+
+          <div class="rank-label-col right">
+            <div *ngFor="let r of displayedRanks" class="rank-label">{{ r }}</div>
           </div>
         </div>
       </div>
@@ -104,7 +117,7 @@ interface Square {
     .board { display: inline-flex; flex-direction: column; }
     .board-inner { display: flex; }
     .file-labels {
-      display: flex; padding-left: 1.4rem;
+      display: flex; padding-left: 1.4rem; padding-right: 1.4rem;
       font-size: 0.7rem; color: #888; letter-spacing: 0.05em;
     }
     .file-labels.flipped { flex-direction: row-reverse; }
@@ -133,6 +146,34 @@ interface Square {
     .square.in-check {
       background: radial-gradient(circle at center, #ff333399 0%, #cc000044 70%, transparent 100%);
       animation: pulseCheck 1.2s infinite ease-in-out alternate;
+    }
+
+    /* Winning King (Green glow + border) & Losing King (Red glow + border) */
+    .square.winning-king {
+      background: radial-gradient(circle at center, rgba(60,220,60,0.65) 0%, rgba(30,160,30,0.4) 75%, transparent 100%) !important;
+      box-shadow: inset 0 0 12px #40e060, 0 0 15px rgba(60,220,60,0.5);
+      outline: 2px solid #40e060 !important;
+      z-index: 5;
+    }
+    .square.losing-king {
+      background: radial-gradient(circle at center, rgba(240,60,60,0.65) 0%, rgba(180,30,30,0.4) 75%, transparent 100%) !important;
+      box-shadow: inset 0 0 12px #ff4444, 0 0 15px rgba(240,60,60,0.5);
+      outline: 2px solid #ff4444 !important;
+      z-index: 5;
+    }
+    .winner-crown {
+      position: absolute;
+      top: 1px;
+      left: 2px;
+      font-size: 0.95rem;
+      line-height: 1;
+      z-index: 10;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+      animation: crownFloat 1.2s infinite alternate ease-in-out;
+    }
+    @keyframes crownFloat {
+      0% { transform: translateY(0) scale(1); }
+      100% { transform: translateY(-2px) scale(1.1); }
     }
 
     /* Denial shake animation on illegal move */
@@ -194,12 +235,6 @@ interface Square {
     .piece.draggable:active { transform: scale(1.2) translateY(-4px); cursor: grabbing; z-index: 4; }
     .piece.white { color: #fff8dc; filter: drop-shadow(1px 2px 4px rgba(0,0,0,0.85)); }
     .piece.black { color: #111; filter: drop-shadow(1px 2px 4px rgba(255,255,255,0.4)); }
-    .piece.fallen-king {
-      transform: rotate(-90deg) translateY(8px) !important;
-      transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      filter: drop-shadow(-3px 3px 6px rgba(0,0,0,0.85)) opacity(0.85);
-      z-index: 5;
-    }
 
     /* Promotion dialog responsive */
     .promotion-overlay {
@@ -234,13 +269,13 @@ interface Square {
     .promo-btn:hover { background: rgba(240,192,64,0.2); border-color: #f0c040; transform: translateY(-4px) scale(1.08); }
 
     @media (max-width: 480px) {
-      .file-labels, .rank-label-col { font-size: 0.55rem; }
-      .file-labels { padding-left: 0.8rem; }
-      .rank-label-col { width: 0.8rem; }
+      .file-labels { padding-left: 0.8rem; padding-right: 0.8rem; font-size: 0.55rem; }
+      .rank-label-col { width: 0.8rem; font-size: 0.55rem; }
       .rank-label { height: var(--sq, 40px); }
       .squares { border-width: 2px; }
       .promo-btn { font-size: 1.8rem; padding: 0.5rem 0.6rem; }
       .piece { font-size: calc(var(--sq, 40px) * 0.72); }
+      .winner-crown { font-size: 0.75rem; }
     }
   `]
 })
@@ -270,13 +305,16 @@ export class ChessBoardComponent implements OnChanges {
   promotionOptions: PieceType[] = ['Queen','Rook','Bishop','Knight'];
   private pendingPromotion: { fromRow: number; fromCol: number; toRow: number; toCol: number } | null = null;
   private dragFrom: { row: number; col: number } | null = null;
-  private touchFrom: { row: number; col: number } | null = null;
+
+  // Touch drag state
+  private touchFromSq: Square | null = null;
+  private touchGhostEl: HTMLElement | null = null;
 
   get flipBoard(): boolean { return this.yourColor === 'Black'; }
 
-  isFallenKing(piece: ChessPiece | undefined): boolean {
-    if (!piece || !this.defeatedColor) return false;
-    return piece.type === 'King' && piece.color === this.defeatedColor;
+  get winningColor(): PieceColor | null {
+    if (!this.defeatedColor) return null;
+    return this.defeatedColor === 'White' ? 'Black' : 'White';
   }
 
   trackBySq(index: number, sq: Square): string {
@@ -356,6 +394,9 @@ export class ChessBoardComponent implements OnChanges {
 
         const sqKey = `${actualRow}_${actualCol}`;
 
+        const isWinningKing = !!this.defeatedColor && piece?.type === 'King' && piece?.color === this.winningColor;
+        const isLosingKing  = !!this.defeatedColor && piece?.type === 'King' && piece?.color === this.defeatedColor;
+
         row.push({
           row: actualRow, col: actualCol,
           piece,
@@ -365,6 +406,8 @@ export class ChessBoardComponent implements OnChanges {
           isSetupZone: this.mode === 'setup' && actualRow >= deployMin && actualRow <= deployMax,
           isLastMove,
           isInCheck: inCheck,
+          isWinningKing,
+          isLosingKing,
           isShaking: this.shakingSquareKeys.has(sqKey)
         });
       }
@@ -398,6 +441,8 @@ export class ChessBoardComponent implements OnChanges {
     return piece.color === this.yourColor && piece.color === this.currentTurn;
   }
 
+  // ── Desktop Drag & Drop ──────────────────────────────────────────────────
+
   onDragStart(e: DragEvent, sq: Square): void {
     if (!sq.piece || !this.canDrag(sq.piece)) {
       e.preventDefault();
@@ -423,48 +468,122 @@ export class ChessBoardComponent implements OnChanges {
     this.dragFrom = null;
 
     if (fr === sq.row && fc === sq.col) return;
+    this.executeMoveOrDrag(fr, fc, sq.row, sq.col);
+  }
+
+  onDragEnd(): void { this.dragFrom = null; }
+
+  // ── Mobile Touch Drag & Drop ─────────────────────────────────────────────
+
+  onTouchStart(e: TouchEvent, sq: Square): void {
+    if (!sq.piece || !this.canDrag(sq.piece)) return;
+
+    this.touchFromSq = sq;
+    const touch = e.touches[0];
+
+    const symbol = this.getPieceSymbol(sq.piece);
+    this.createGhostPiece(symbol, sq.piece.color, touch.clientX, touch.clientY);
+
+    const alg = this.gameService.toAlgebraic(sq.row, sq.col);
+    if (this.selectedSquare !== alg) {
+      this.squareClicked.emit({ row: sq.row, col: sq.col, algebraic: alg });
+    }
+  }
+
+  onTouchMove(e: TouchEvent): void {
+    if (!this.touchFromSq || !this.touchGhostEl) return;
+    e.preventDefault(); // Prevent scrolling while dragging piece
+    const touch = e.touches[0];
+    this.updateGhostPosition(touch.clientX, touch.clientY);
+  }
+
+  onTouchEnd(e: TouchEvent): void {
+    if (!this.touchFromSq) return;
+
+    const touch = e.changedTouches[0];
+    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+    const sqEl = targetEl?.closest('.square') as HTMLElement | null;
+
+    this.removeGhostPiece();
+
+    if (sqEl) {
+      const rowAttr = sqEl.getAttribute('data-row');
+      const colAttr = sqEl.getAttribute('data-col');
+      if (rowAttr !== null && colAttr !== null) {
+        const toRow = parseInt(rowAttr, 10);
+        const toCol = parseInt(colAttr, 10);
+        const fromSq = this.touchFromSq;
+        this.touchFromSq = null;
+
+        if (fromSq.row !== toRow || fromSq.col !== toCol) {
+          this.executeMoveOrDrag(fromSq.row, fromSq.col, toRow, toCol);
+          return;
+        }
+      }
+    }
+
+    this.touchFromSq = null;
+  }
+
+  private executeMoveOrDrag(fr: number, fc: number, tr: number, tc: number): void {
+    const targetSq = this.boardRows.flat().find(s => s.row === tr && s.col === tc);
 
     if (this.mode === 'play') {
-      if (!sq.isHighlighted) {
-        const fromKey = `${fr}_${fc}`;
-        const targetKey = `${sq.row}_${sq.col}`;
-        this.triggerDenial([fromKey, targetKey]);
+      if (!targetSq || !targetSq.isHighlighted) {
+        this.triggerDenial([`${fr}_${fc}`, `${tr}_${tc}`]);
         return;
       }
 
       const piece = this.pieces.find(p => p.row === fr && p.col === fc);
       if (piece?.type === 'Pawn') {
-        const isPromoRow = (piece.color === 'White' && sq.row === 7) ||
-                           (piece.color === 'Black' && sq.row === 0);
+        const isPromoRow = (piece.color === 'White' && tr === 7) ||
+                           (piece.color === 'Black' && tr === 0);
         if (isPromoRow) {
-          this.pendingPromotion = { fromRow: fr, fromCol: fc, toRow: sq.row, toCol: sq.col };
+          this.pendingPromotion = { fromRow: fr, fromCol: fc, toRow: tr, toCol: tc };
           this.promotionPending = true;
           return;
         }
       }
     } else if (this.mode === 'setup') {
-      if (!sq.isSetupZone || (sq.piece && sq.piece !== this.pieces.find(p => p.row === fr && p.col === fc))) {
-        const fromKey = `${fr}_${fc}`;
-        const targetKey = `${sq.row}_${sq.col}`;
-        this.triggerDenial([fromKey, targetKey]);
+      if (!targetSq || !targetSq.isSetupZone || (targetSq.piece && targetSq.piece !== this.pieces.find(p => p.row === fr && p.col === fc))) {
+        this.triggerDenial([`${fr}_${fc}`, `${tr}_${tc}`]);
         return;
       }
     }
 
-    this.pieceDragged.emit({ fromRow: fr, fromCol: fc, toRow: sq.row, toCol: sq.col });
+    this.pieceDragged.emit({ fromRow: fr, fromCol: fc, toRow: tr, toCol: tc });
   }
 
-  onDragEnd(): void { this.dragFrom = null; }
+  private createGhostPiece(symbol: string, color: PieceColor, x: number, y: number): void {
+    this.removeGhostPiece();
+    const el = document.createElement('div');
+    el.className = `touch-ghost-piece ${color.toLowerCase()}`;
+    el.innerText = symbol;
+    el.style.position = 'fixed';
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    el.style.transform = 'translate(-50%, -50%) scale(1.25)';
+    el.style.pointerEvents = 'none';
+    el.style.zIndex = '99999';
+    el.style.fontSize = '2.5rem';
+    el.style.lineHeight = '1';
+    el.style.filter = color === 'White' ? 'drop-shadow(0 4px 10px rgba(0,0,0,0.85))' : 'drop-shadow(0 4px 10px rgba(255,255,255,0.6))';
+    el.style.color = color === 'White' ? '#fff8dc' : '#111';
+    document.body.appendChild(el);
+    this.touchGhostEl = el;
+  }
 
-  onTouchStart(e: TouchEvent, sq: Square): void {
-    if (sq.piece && this.canDrag(sq.piece)) {
-      this.touchFrom = { row: sq.row, col: sq.col };
+  private updateGhostPosition(x: number, y: number): void {
+    if (this.touchGhostEl) {
+      this.touchGhostEl.style.left = `${x}px`;
+      this.touchGhostEl.style.top = `${y}px`;
     }
   }
 
-  onTouchEnd(e: TouchEvent, sq: Square): void {
-    if (this.touchFrom) {
-      this.touchFrom = null;
+  private removeGhostPiece(): void {
+    if (this.touchGhostEl) {
+      this.touchGhostEl.remove();
+      this.touchGhostEl = null;
     }
   }
 
