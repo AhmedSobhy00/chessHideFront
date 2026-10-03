@@ -3,6 +3,7 @@
 export type PieceType = 'King' | 'Queen' | 'Rook' | 'Bishop' | 'Knight' | 'Pawn';
 export type PieceColor = 'White' | 'Black';
 export type GamePhase = 'WaitingForPlayers' | 'Setup' | 'Reveal' | 'Playing' | 'Finished' | 'Abandoned';
+export type GameMode = 'HiddenFormation' | 'Classic';
 
 export interface ChessPiece {
   type: PieceType;
@@ -18,7 +19,7 @@ export interface GameCreatedEvent {
   playerId: string;
   yourColor: PieceColor;
   yourName: string;
-  shareUrl: string;
+  gameMode: GameMode;
 }
 
 export interface GameJoinedEvent {
@@ -27,11 +28,17 @@ export interface GameJoinedEvent {
   yourColor: PieceColor;
   yourName: string;
   opponentName: string;
+  gameMode: GameMode;
 }
 
 export interface PlayerJoinedEvent {
   opponentName: string;
   color: PieceColor;
+  gameMode: GameMode;
+}
+
+export interface MatchStartingEvent {
+  seconds: number;
 }
 
 export interface SetupStartedEvent {
@@ -85,6 +92,7 @@ export interface GameFinishedEvent {
 
 export interface GameStateRestoredEvent {
   phase: GamePhase;
+  gameMode?: GameMode;
   yourColor?: PieceColor;
   setupEndsAt?: string;
   yourPieces?: ChessPiece[];
@@ -107,7 +115,10 @@ export interface GameState {
   yourColor: PieceColor;
   yourName: string;
   opponentName: string;
+  gameMode: GameMode;
   phase: GamePhase;
+  isStartingMatch: boolean;
+  countdownSeconds: number;
 
   // Setup
   setupEndsAt: Date | null;
@@ -140,7 +151,10 @@ export function createEmptyGameState(): GameState {
     yourColor: 'White',
     yourName: '',
     opponentName: '',
+    gameMode: 'HiddenFormation',
     phase: 'WaitingForPlayers',
+    isStartingMatch: false,
+    countdownSeconds: 0,
     setupEndsAt: null,
     yourPieces: [],
     opponentReady: false,

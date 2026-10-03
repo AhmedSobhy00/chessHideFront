@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { GameService } from '../../core/services/game.service';
+import { GameMode } from '../../models/game.model';
 
 @Component({
   selector: 'app-lobby',
@@ -30,10 +31,36 @@ import { GameService } from '../../core/services/game.service';
           />
         </div>
 
+        <div class="mode-selector">
+          <label>Game Mode</label>
+          <div class="mode-options">
+            <button
+              type="button"
+              class="mode-btn"
+              [class.active]="selectedMode === 'HiddenFormation'"
+              (click)="selectedMode = 'HiddenFormation'"
+            >
+              <span class="mode-icon">🤫</span>
+              <span class="mode-title">Hidden Formation</span>
+              <span class="mode-desc">60s secret setup</span>
+            </button>
+            <button
+              type="button"
+              class="mode-btn"
+              [class.active]="selectedMode === 'Classic'"
+              (click)="selectedMode = 'Classic'"
+            >
+              <span class="mode-icon">♟</span>
+              <span class="mode-title">Classic Chess</span>
+              <span class="mode-desc">Standard start</span>
+            </button>
+          </div>
+        </div>
+
         <div class="actions">
           <button class="btn btn-primary" (click)="createGame()" [disabled]="loading">
             <span class="btn-icon">+</span>
-            Create Game
+            Create {{ selectedMode === 'Classic' ? 'Classic' : 'Hidden' }} Game
           </button>
 
           <div class="divider"><span>or</span></div>
@@ -79,12 +106,12 @@ import { GameService } from '../../core/services/game.service';
       border-radius: 1.5rem;
       padding: 2rem;
       width: 100%;
-      max-width: 420px;
+      max-width: 440px;
       backdrop-filter: blur(10px);
       box-shadow: 0 20px 60px rgba(0,0,0,0.4);
     }
-    .name-field { margin-bottom: 1.5rem; }
-    .name-field label { display: block; font-size: 0.8rem; color: #a0a8b8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; }
+    .name-field { margin-bottom: 1.25rem; }
+    .name-field label, .mode-selector label { display: block; font-size: 0.8rem; color: #a0a8b8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; }
     input[type="text"] {
       width: 100%; box-sizing: border-box;
       background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12);
@@ -93,6 +120,25 @@ import { GameService } from '../../core/services/game.service';
       transition: border-color 0.2s;
     }
     input[type="text"]:focus { border-color: #f0c040; }
+
+    .mode-selector { margin-bottom: 1.5rem; }
+    .mode-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .mode-btn {
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 0.75rem; padding: 0.75rem 0.5rem; cursor: pointer;
+      color: #a0a8b8; transition: all 0.2s; font-family: inherit;
+    }
+    .mode-btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
+    .mode-btn.active {
+      background: rgba(240,192,64,0.12); border-color: #f0c040; color: #e8e8e8;
+      box-shadow: 0 0 15px rgba(240,192,64,0.2);
+    }
+    .mode-icon { font-size: 1.5rem; margin-bottom: 0.2rem; }
+    .mode-title { font-weight: 700; font-size: 0.85rem; color: #e8e8e8; margin-bottom: 0.1rem; }
+    .mode-btn.active .mode-title { color: #f0c040; }
+    .mode-desc { font-size: 0.72rem; color: #707888; }
+
     .actions { display: flex; flex-direction: column; gap: 1rem; }
     .btn {
       display: flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -118,6 +164,7 @@ import { GameService } from '../../core/services/game.service';
 export class LobbyComponent implements OnInit, OnDestroy {
   playerName = '';
   joinId = '';
+  selectedMode: GameMode = 'HiddenFormation';
   loading = false;
   errorMsg = '';
   private sub?: Subscription;
@@ -129,7 +176,6 @@ export class LobbyComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Auto-fill game ID if navigated to /game/:id without being in a game
     const id = this.route.snapshot.paramMap.get('id');
     if (id) this.joinId = id.toUpperCase();
 
@@ -143,7 +189,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
     this.errorMsg = '';
     this.loading = true;
     try {
-      await this.gameService.createGame(this.playerName || 'Anonymous');
+      await this.gameService.createGame(this.playerName || 'Anonymous', this.selectedMode);
     } catch (e: any) {
       this.errorMsg = e.message || 'Failed to create game';
       this.loading = false;

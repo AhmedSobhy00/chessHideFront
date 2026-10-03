@@ -187,4 +187,53 @@ export class SoundService {
       osc.stop(ctx.currentTime + 0.08);
     } catch (e) {}
   }
+
+  // ── Countdown beep (for match start 3..2..1) ────────────────────────────────
+  playCountdownBeep(isFinal: boolean = false): void {
+    try {
+      const ctx = this.initCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = isFinal ? 'triangle' : 'sine';
+      const freq = isFinal ? 880 : 440;
+      const duration = isFinal ? 0.25 : 0.12;
+
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + duration);
+    } catch (e) {}
+  }
+
+  // ── Denial / Illegal move buzz sound ──────────────────────────────────────
+  playDenial(): void {
+    try {
+      const ctx = this.initCtx();
+      const now = ctx.currentTime;
+
+      [0, 0.09].forEach(delay => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, now + delay);
+        osc.frequency.exponentialRampToValueAtTime(90, now + delay + 0.07);
+
+        gain.gain.setValueAtTime(0.35, now + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.07);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now + delay);
+        osc.stop(now + delay + 0.07);
+      });
+    } catch (e) {}
+  }
 }

@@ -1,8 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { GameService } from '../../core/services/game.service';
-import { GameState, ChessPiece, PieceType } from '../../models/game.model';
+import { GameState, ChessPiece, PieceType, PieceColor } from '../../models/game.model';
 import { ChessBoardComponent } from '../chess-board/chess-board.component';
 
 @Component({
@@ -10,37 +10,44 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
   standalone: true,
   imports: [CommonModule, ChessBoardComponent],
   template: `
+    <!-- Ambient moving turn light -->
+    <div
+      class="turn-ambient-light"
+      [class.your-turn]="state && state.currentTurn === state.yourColor && state.phase !== 'Finished'"
+      [class.finished]="state && state.phase === 'Finished'"
+    ></div>
+
     <div class="game-layout">
 
       <!-- Opponent area -->
       <div class="player-bar opponent-bar">
-        <div class="player-info">
-          <div class="player-avatar opponent-avatar">{{ state.opponentName[0]?.toUpperCase() }}</div>
+        <div class="player-info" *ngIf="state">
+          <div class="player-avatar opponent-avatar">{{ initialChar(state.opponentName) }}</div>
           <div class="player-details">
-            <span class="player-name">{{ state.opponentName }}</span>
+            <span class="player-name">{{ state.opponentName || 'Opponent' }}</span>
             <span class="player-color">{{ opponentColor }}</span>
           </div>
-          <div class="turn-indicator" [class.active]="state.currentTurn !== state.yourColor">
-            <div class="turn-pulse" *ngIf="state.currentTurn !== state.yourColor"></div>
-            {{ state.currentTurn !== state.yourColor ? 'Thinking…' : '' }}
+          <div class="turn-indicator" [class.active]="state.phase !== 'Finished' && state.currentTurn !== state.yourColor">
+            <div class="turn-pulse" *ngIf="state.phase !== 'Finished' && state.currentTurn !== state.yourColor"></div>
+            {{ (state.phase !== 'Finished' && state.currentTurn !== state.yourColor) ? 'Thinking…' : '' }}
           </div>
         </div>
-        <div class="captured-pieces">
-          <span *ngFor="let p of capturedOpponentPieces" class="cap-piece">
+        <div class="captured-pieces" *ngIf="state">
+          <span *ngFor="let p of piecesCapturedByOpponent" class="cap-piece">
             {{ miniPiece(p.type, state.yourColor) }}
           </span>
         </div>
       </div>
 
-      <!-- Check / status banner -->
-      <div class="status-banner" *ngIf="state.isCheck">
-        ♚ Check!
+      <!-- Check / Checkmate status banner -->
+      <div class="status-banner" *ngIf="state && (state.isCheck || isCheckmate)" [class.checkmate]="isCheckmate">
+        {{ isCheckmate ? '♚ Checkmate!' : '♚ Check!' }}
       </div>
 
       <!-- Board -->
-      <div class="board-area">
+      <div class="board-area" *ngIf="state">
         <app-chess-board
-          [pieces]="state.allPieces"
+          [pieces]="state.allPieces || []"
           [yourColor]="state.yourColor"
           mode="play"
           [selectedSquare]="state.selectedSquare"
@@ -48,7 +55,8 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
           [isCheck]="state.isCheck"
           [currentTurn]="state.currentTurn"
           [lastMove]="lastMove"
-          [disabled]="state.currentTurn !== state.yourColor"
+          [defeatedColor]="defeatedColor"
+          [disabled]="state.phase === 'Finished' || state.currentTurn !== state.yourColor"
           [squareSize]="squareSize"
           (squareClicked)="onSquareClick($event)"
           (pieceDragged)="onPieceDragged($event)"
@@ -57,34 +65,34 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
       </div>
 
       <!-- Your area -->
-      <div class="player-bar your-bar">
+      <div class="player-bar your-bar" *ngIf="state">
         <div class="captured-pieces">
-          <span *ngFor="let p of capturedYourPieces" class="cap-piece">
+          <span *ngFor="let p of piecesCapturedByYou" class="cap-piece">
             {{ miniPiece(p.type, opponentColor) }}
           </span>
         </div>
         <div class="player-info">
-          <div class="turn-indicator" [class.active]="state.currentTurn === state.yourColor">
-            <div class="turn-pulse" *ngIf="state.currentTurn === state.yourColor"></div>
-            {{ state.currentTurn === state.yourColor ? 'Your turn' : '' }}
+          <div class="turn-indicator" [class.active]="state.phase !== 'Finished' && state.currentTurn === state.yourColor">
+            <div class="turn-pulse" *ngIf="state.phase !== 'Finished' && state.currentTurn === state.yourColor"></div>
+            {{ (state.phase !== 'Finished' && state.currentTurn === state.yourColor) ? 'Your turn' : '' }}
           </div>
           <div class="player-details right">
             <span class="player-name">{{ state.yourName }} (You)</span>
             <span class="player-color">{{ state.yourColor }}</span>
           </div>
-          <div class="player-avatar your-avatar">{{ state.yourName[0]?.toUpperCase() }}</div>
+          <div class="player-avatar your-avatar">{{ initialChar(state.yourName) }}</div>
         </div>
       </div>
 
       <!-- Draw offer banner -->
-      <div class="draw-offer-banner" *ngIf="state.drawOfferedToMe">
+      <div class="draw-offer-banner" *ngIf="state && state.drawOfferedToMe">
         <span>Opponent offers a draw</span>
         <button class="btn-accept" (click)="acceptDraw()">Accept</button>
         <button class="btn-decline" (click)="declineDraw()">Decline</button>
       </div>
 
       <!-- Action buttons -->
-      <div class="action-buttons">
+      <div class="action-buttons" *ngIf="state && state.phase !== 'Finished'">
         <button class="btn-action resign" (click)="confirmResign()">
           🏳 Resign
         </button>
@@ -94,7 +102,7 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
       </div>
 
       <!-- Move history -->
-      <div class="move-history" *ngIf="state.moveHistory.length > 0">
+      <div class="move-history" *ngIf="state && state.moveHistory && state.moveHistory.length > 0">
         <div class="history-inner">
           <span *ngFor="let mv of pairedMoves; let i = index" class="move-pair">
             <span class="move-num">{{ i + 1 }}.</span>
@@ -106,7 +114,26 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     </div>
   `,
   styles: [`
-    .game-layout { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 0.75rem; max-width: 600px; margin: 0 auto; }
+    .turn-ambient-light {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: radial-gradient(circle at 50% 15%, rgba(64, 130, 255, 0.18) 0%, transparent 65%);
+      transition: background 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .turn-ambient-light.your-turn {
+      background: radial-gradient(circle at 50% 85%, rgba(240, 192, 64, 0.22) 0%, transparent 65%);
+    }
+    .turn-ambient-light.finished {
+      background: transparent;
+    }
+
+    .game-layout {
+      position: relative;
+      z-index: 1;
+      display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 0.75rem; max-width: 600px; margin: 0 auto;
+    }
     .player-bar { width: 100%; display: flex; flex-direction: column; gap: 0.3rem; }
     .player-info { display: flex; align-items: center; gap: 0.6rem; }
     .player-avatar {
@@ -132,8 +159,16 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
       background: linear-gradient(135deg, #e05050, #901010);
       color: #fff; padding: 0.4rem 1.5rem; border-radius: 2rem;
       font-weight: 700; font-size: 0.95rem; animation: check-blink 0.6s infinite alternate;
+      box-shadow: 0 4px 15px rgba(224,80,80,0.4);
+    }
+    .status-banner.checkmate {
+      background: linear-gradient(135deg, #d03030, #600000);
+      font-size: 1.05rem; padding: 0.5rem 1.75rem; letter-spacing: 0.05em;
+      box-shadow: 0 6px 20px rgba(220,30,30,0.6);
+      animation: checkmate-pulse 0.8s infinite alternate ease-in-out;
     }
     @keyframes check-blink { from{opacity:1} to{opacity:0.6} }
+    @keyframes checkmate-pulse { from{transform:scale(0.96);opacity:0.9} to{transform:scale(1.04);opacity:1} }
 
     .board-area { width: 100%; display: flex; justify-content: center; }
 
@@ -183,20 +218,53 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
   private pendingPromotion: { from: string; to: string } | null = null;
   private subs: Subscription[] = [];
 
-  get opponentColor() {
+  initialChar(name?: string | null): string {
+    return name && name.length > 0 ? name[0].toUpperCase() : '?';
+  }
+
+  get opponentColor(): PieceColor {
     return this.state?.yourColor === 'White' ? 'Black' : 'White';
   }
 
-  get capturedYourPieces() {
-    return this.state?.yourColor === 'White'
-      ? (this.state?.capturedByBlack ?? [])
-      : (this.state?.capturedByWhite ?? []);
+  get defeatedColor(): PieceColor | null {
+    if (this.state?.phase === 'Finished' && this.state?.result?.winner) {
+      return this.state.result.winner === 'White' ? 'Black' : 'White';
+    }
+    return null;
   }
 
-  get capturedOpponentPieces() {
-    return this.state?.yourColor === 'White'
-      ? (this.state?.capturedByWhite ?? [])
-      : (this.state?.capturedByBlack ?? []);
+  get isCheckmate(): boolean {
+    return this.state?.phase === 'Finished' && this.state?.result?.reason === 'Checkmate';
+  }
+
+  get piecesCapturedByYou(): { type: PieceType }[] {
+    const oppColor = this.opponentColor;
+    const remainingOpp = this.state?.allPieces?.filter(p => p.color === oppColor) ?? [];
+    return this.calculateCaptured(remainingOpp);
+  }
+
+  get piecesCapturedByOpponent(): { type: PieceType }[] {
+    const myColor = this.state?.yourColor ?? 'White';
+    const remainingMy = this.state?.allPieces?.filter(p => p.color === myColor) ?? [];
+    return this.calculateCaptured(remainingMy);
+  }
+
+  private calculateCaptured(remaining: ChessPiece[]): { type: PieceType }[] {
+    const initial: Record<PieceType, number> = {
+      Pawn: 8, Knight: 2, Bishop: 2, Rook: 2, Queen: 1, King: 1
+    };
+    const current: Record<PieceType, number> = {
+      Pawn: 0, Knight: 0, Bishop: 0, Rook: 0, Queen: 0, King: 0
+    };
+    remaining.forEach(p => { if (current[p.type] !== undefined) current[p.type]++; });
+
+    const captured: { type: PieceType }[] = [];
+    const types: PieceType[] = ['Queen', 'Rook', 'Bishop', 'Knight', 'Pawn'];
+    types.forEach(t => {
+      const missing = Math.max(0, initial[t] - current[t]);
+      for (let i = 0; i < missing; i++) captured.push({ type: t });
+    });
+    return captured;
   }
 
   get pairedMoves(): [string, string?][] {
@@ -213,7 +281,7 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
     this.adjustBoardSize();
     this.subs.push(
       this.gameService.state$.subscribe(s => {
-        if (s.moveHistory.length > 0 && s.moveHistory.length !== this.state?.moveHistory?.length) {
+        if (s.moveHistory && s.moveHistory.length > 0 && s.moveHistory.length !== this.state?.moveHistory?.length) {
           const last = s.moveHistory[s.moveHistory.length - 1];
           this.lastMove = { from: last.substring(0,2), to: last.substring(2,4) };
         }
@@ -222,22 +290,26 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
     );
   }
 
+  @HostListener('window:resize')
+  onResize(): void {
+    this.adjustBoardSize();
+  }
+
   private adjustBoardSize(): void {
     const vw = window.innerWidth;
-    if (vw < 480) this.squareSize = Math.floor((vw - 48) / 8);
+    if (vw < 480) this.squareSize = Math.max(36, Math.floor((vw - 32) / 8));
     else if (vw < 768) this.squareSize = 64;
     else this.squareSize = 72;
   }
 
   async onSquareClick(e: { row: number; col: number; algebraic: string }): Promise<void> {
     const s = this.state;
-    if (s.currentTurn !== s.yourColor) return;
+    if (!s || s.currentTurn !== s.yourColor || s.phase === 'Finished') return;
 
     const piece = s.allPieces.find(p => p.row === e.row && p.col === e.col);
     const alg = e.algebraic;
 
     if (s.selectedSquare && s.legalMoves.includes(alg)) {
-      // Check if pawn promotion
       const sel = this.gameService.fromAlgebraic(s.selectedSquare);
       const movingPiece = s.allPieces.find(p => p.row === sel.row && p.col === sel.col);
       const isPromo = movingPiece?.type === 'Pawn' &&
@@ -246,9 +318,6 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
 
       if (isPromo) {
         this.pendingPromotion = { from: s.selectedSquare, to: alg };
-        // Promotion dialog handled by board component's built-in dialog on drag
-        // For click-based: emit to board (no - board emits back promotionChosen)
-        // Simple fallback: queen promotion
         await this.gameService.makeMove(s.selectedSquare, alg, 'queen');
       } else {
         await this.gameService.makeMove(s.selectedSquare, alg);
@@ -256,7 +325,6 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
     } else if (piece && piece.color === s.yourColor) {
       await this.gameService.getLegalMoves(alg);
     } else {
-      // Deselect
       this.gameService['patch']?.({ selectedSquare: null, legalMoves: [] });
     }
   }
@@ -265,16 +333,13 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
     const from = this.gameService.toAlgebraic(e.fromRow, e.fromCol);
     const to   = this.gameService.toAlgebraic(e.toRow, e.toCol);
     if (this.pendingPromotion) {
-      // Promotion already started — wait for promotionChosen event
       this.pendingPromotion = { from, to };
     } else {
-      // Check pawn promotion
       const piece = this.state.allPieces.find(p => p.row === e.fromRow && p.col === e.fromCol);
       const isPromo = piece?.type === 'Pawn' &&
         ((piece.color === 'White' && e.toRow === 7) || (piece.color === 'Black' && e.toRow === 0));
       if (isPromo) {
         this.pendingPromotion = { from, to };
-        // board component opens dialog; wait for promotionChosen
       } else {
         await this.gameService.makeMove(from, to);
       }

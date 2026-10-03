@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription, interval } from 'rxjs';
 import { GameService } from '../../core/services/game.service';
@@ -160,9 +160,14 @@ export class SetupPhaseComponent implements OnInit, OnDestroy {
     this.timerDashOffset = (1 - remaining / 60) * 163.4;
   }
 
+  @HostListener('window:resize')
+  onResize(): void {
+    this.adjustBoardSize();
+  }
+
   private adjustBoardSize(): void {
     const vw = window.innerWidth;
-    if (vw < 480) this.squareSize = Math.floor((vw - 48) / 8);
+    if (vw < 480) this.squareSize = Math.max(36, Math.floor((vw - 32) / 8));
     else if (vw < 768) this.squareSize = 60;
     else this.squareSize = 72;
   }

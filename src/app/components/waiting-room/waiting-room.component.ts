@@ -10,85 +10,253 @@ import { GameState } from '../../models/game.model';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="waiting-container">
-      <div class="waiting-card">
-        <div class="chess-icon">♟</div>
-        <h2>Waiting for opponent</h2>
-        <p class="sub">Share this Game ID with a friend:</p>
+    <div class="lobby-container">
+      
+      <!-- 3-Second Countdown Overlay -->
+      <div class="countdown-overlay" *ngIf="state?.isStartingMatch">
+        <div class="countdown-box">
+          <div class="countdown-label">MATCH STARTING IN</div>
+          <div class="countdown-number">
+            {{ state?.countdownSeconds }}
+          </div>
+          <div class="countdown-sub">Prepare for battle!</div>
+        </div>
+      </div>
 
-        <div class="game-id-box">
-          <span class="game-id">{{ state?.gameId }}</span>
-          <button class="copy-btn" (click)="copyId()" [class.copied]="copied">
-            {{ copied ? '✓ Copied!' : '⎘ Copy' }}
-          </button>
+      <div class="lobby-card">
+        
+        <!-- Header & Code -->
+        <div class="lobby-header">
+          <div class="lobby-badge">MATCH LOBBY</div>
+          <h2>Game Code</h2>
+          <div class="game-id-box">
+            <span class="game-id">{{ state?.gameId }}</span>
+            <button class="copy-btn" (click)="copyId()" [class.copied]="copied">
+              {{ copied ? '✓ Copied!' : '⎘ Copy Code' }}
+            </button>
+          </div>
         </div>
 
-        <div class="share-url">
-          <span>or share link: </span>
-          <code>{{ shareUrl }}</code>
-          <button class="copy-btn sm" (click)="copyUrl()">⎘</button>
+        <!-- Players List -->
+        <div class="players-section">
+          <h3>Players</h3>
+          <div class="player-card host">
+            <div class="player-avatar white-avatar">♔</div>
+            <div class="player-info">
+              <span class="player-name">
+                {{ isHost ? (state?.yourName || 'Host') : (state?.opponentName || 'Waiting...') }}
+              </span>
+              <span class="player-role">👑 Room Host (White)</span>
+            </div>
+            <span class="status-badge ready">Ready</span>
+          </div>
+
+          <div class="player-card opponent" [class.joined]="hasOpponent">
+            <div class="player-avatar black-avatar">♚</div>
+            <div class="player-info">
+              <span class="player-name">
+                {{ isHost ? (state?.opponentName || 'Waiting for player...') : (state?.yourName || 'You') }}
+              </span>
+              <span class="player-role">⚔️ Challenger (Black)</span>
+            </div>
+            <span class="status-badge" [class.ready]="hasOpponent" [class.waiting]="!hasOpponent">
+              {{ hasOpponent ? 'Joined' : 'Waiting…' }}
+            </span>
+          </div>
         </div>
 
-        <div class="waiting-animation">
-          <div class="dot"></div>
-          <div class="dot"></div>
-          <div class="dot"></div>
+        <!-- Selected Game Mode & Rules -->
+        <div class="rules-card">
+          <div class="rules-header">
+            <span class="mode-icon">{{ state?.gameMode === 'Classic' ? '♟' : '🤫' }}</span>
+            <span class="mode-title">{{ state?.gameMode === 'Classic' ? 'Classic Chess' : 'Hidden Formation' }}</span>
+          </div>
+          <p class="rules-subtitle">Game Mode & Rules</p>
+          
+          <ul class="rules-list" *ngIf="state?.gameMode !== 'Classic'">
+            <li>⏱️ <strong>60s Secret Setup:</strong> Both players place their pieces in secret before the match begins.</li>
+            <li>🛡️ <strong>Deployment Zone:</strong> White places on Ranks 1–4, Black on Ranks 5–8.</li>
+            <li>🙈 <strong>Fog of War:</strong> Opponent's pieces remain hidden until both formations are locked.</li>
+          </ul>
+
+          <ul class="rules-list" *ngIf="state?.gameMode === 'Classic'">
+            <li>♟️ <strong>Standard Setup:</strong> Traditional chess piece starting layout.</li>
+            <li>⚖️ <strong>Standard Rules:</strong> Traditional chess movements, checks, checkmates, and turns.</li>
+          </ul>
         </div>
 
-        <button class="btn-cancel" (click)="cancel()">Cancel</button>
+        <!-- Actions -->
+        <div class="lobby-actions">
+          <div *ngIf="isHost">
+            <button
+              class="btn-start"
+              (click)="startMatch()"
+              [disabled]="!hasOpponent || state?.isStartingMatch"
+            >
+              <span class="btn-icon">🚀</span>
+              {{ hasOpponent ? 'Start Match' : 'Waiting for Opponent...' }}
+            </button>
+          </div>
+
+          <div *ngIf="!isHost" class="guest-waiting-banner">
+            <div class="pulse-dot"></div>
+            <span>Waiting for room host to start the match…</span>
+          </div>
+
+          <button class="btn-cancel" (click)="cancel()">Leave Lobby</button>
+        </div>
+
       </div>
     </div>
   `,
   styles: [`
-    .waiting-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
-    .waiting-card {
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 1.5rem; padding: 2.5rem 2rem; max-width: 420px; width: 100%;
-      text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    .lobby-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      position: relative;
     }
-    .chess-icon { font-size: 3.5rem; margin-bottom: 0.5rem; filter: drop-shadow(0 0 10px #f0c04088); }
-    h2 { color: #e8e8e8; font-size: 1.5rem; margin: 0 0 0.4rem; }
-    .sub { color: #a0a8b8; font-size: 0.9rem; margin: 0 0 1.5rem; }
+    .lobby-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 1.5rem;
+      padding: 2rem;
+      max-width: 460px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .lobby-header { text-align: center; }
+    .lobby-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      color: #f0c040;
+      background: rgba(240,192,64,0.12);
+      border: 1px solid rgba(240,192,64,0.25);
+      padding: 0.2rem 0.6rem;
+      border-radius: 1rem;
+      margin-bottom: 0.4rem;
+    }
+    h2 { margin: 0 0 0.75rem; color: #a0a8b8; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 
     .game-id-box {
       display: flex; align-items: center; justify-content: center; gap: 0.75rem;
-      background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 0.75rem; padding: 0.75rem 1rem; margin-bottom: 0.75rem;
+      background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 0.85rem; padding: 0.75rem 1rem;
     }
-    .game-id { font-size: 2rem; font-weight: 800; color: #f0c040; letter-spacing: 0.2em; font-family: monospace; }
+    .game-id { font-size: 2.2rem; font-weight: 800; color: #f0c040; letter-spacing: 0.2em; font-family: monospace; }
     .copy-btn {
       background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 0.5rem; color: #e8e8e8; padding: 0.4rem 0.8rem;
-      font-size: 0.8rem; cursor: pointer; font-family: inherit; transition: all 0.2s;
+      border-radius: 0.5rem; color: #e8e8e8; padding: 0.5rem 0.8rem;
+      font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s;
     }
-    .copy-btn.copied { background: rgba(60,200,60,0.15); border-color: #40d060; color: #60e080; }
-    .copy-btn.sm { padding: 0.2rem 0.5rem; font-size: 0.75rem; }
+    .copy-btn.copied { background: rgba(60,200,60,0.18); border-color: #40d060; color: #60e080; }
     .copy-btn:hover { background: rgba(255,255,255,0.14); }
 
-    .share-url { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: #808898; margin-bottom: 1.5rem; flex-wrap: wrap; justify-content: center; }
-    .share-url code { color: #a0a8b8; }
+    .players-section { display: flex; flex-direction: column; gap: 0.6rem; }
+    .players-section h3 { margin: 0 0 0.2rem; font-size: 0.8rem; color: #a0a8b8; text-transform: uppercase; letter-spacing: 0.08em; }
 
-    .waiting-animation { display: flex; justify-content: center; gap: 0.4rem; margin-bottom: 1.5rem; }
-    .dot {
-      width: 8px; height: 8px; border-radius: 50%; background: #40a0f0;
-      animation: bounce 1.2s infinite ease-in-out;
+    .player-card {
+      display: flex; align-items: center; gap: 0.75rem;
+      background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 0.85rem; padding: 0.65rem 0.85rem;
+      transition: all 0.3s;
     }
-    .dot:nth-child(2) { animation-delay: 0.2s; }
-    .dot:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes bounce { 0%,80%,100%{transform:scale(0.6);opacity:0.5} 40%{transform:scale(1);opacity:1} }
+    .player-card.joined { border-color: rgba(60,200,60,0.25); background: rgba(60,200,60,0.04); }
+    .player-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; flex-shrink: 0;
+    }
+    .white-avatar { background: linear-gradient(135deg,#f0c040,#d4880a); color: #111; }
+    .black-avatar { background: linear-gradient(135deg,#4060c0,#204080); color: #fff; }
+    .player-info { flex: 1; display: flex; flex-direction: column; }
+    .player-name { font-weight: 700; color: #e8e8e8; font-size: 0.95rem; }
+    .player-role { font-size: 0.72rem; color: #808898; }
+    .status-badge {
+      font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 1rem;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .status-badge.ready   { background: rgba(60,200,60,0.15); color: #60e080; border: 1px solid rgba(60,200,60,0.3); }
+    .status-badge.waiting { background: rgba(255,255,255,0.06); color: #808898; border: 1px solid rgba(255,255,255,0.1); }
+
+    .rules-card {
+      background: rgba(0,0,0,0.25); border: 1px solid rgba(240,192,64,0.15);
+      border-radius: 1rem; padding: 1rem;
+    }
+    .rules-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.2rem; }
+    .mode-icon { font-size: 1.3rem; }
+    .mode-title { font-weight: 800; font-size: 1.05rem; color: #f0c040; }
+    .rules-subtitle { margin: 0 0 0.6rem; font-size: 0.75rem; color: #808898; text-transform: uppercase; letter-spacing: 0.05em; }
+    .rules-list { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.4rem; color: #c0c8d8; font-size: 0.82rem; line-height: 1.35; }
+    .rules-list strong { color: #e8e8e8; }
+
+    .lobby-actions { display: flex; flex-direction: column; gap: 0.75rem; align-items: center; }
+    .btn-start {
+      width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      background: linear-gradient(135deg, #f0c040, #d4880a); color: #1a1a2e;
+      padding: 0.9rem 1.5rem; border-radius: 0.85rem; border: none;
+      font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: all 0.2s;
+      font-family: inherit; box-shadow: 0 8px 24px rgba(240,192,64,0.3);
+    }
+    .btn-start:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(240,192,64,0.45); }
+    .btn-start:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+    .btn-icon { font-size: 1.2rem; }
+
+    .guest-waiting-banner {
+      display: flex; align-items: center; gap: 0.6rem; justify-content: center;
+      background: rgba(60,140,250,0.12); border: 1px solid rgba(60,140,250,0.25);
+      border-radius: 0.75rem; padding: 0.75rem 1rem; width: 100%; box-sizing: border-box;
+      color: #90c0ff; font-size: 0.85rem; font-weight: 600;
+    }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: #40a0f0; animation: pulse 1s infinite alternate; }
+    @keyframes pulse { from{opacity:0.4;transform:scale(0.8)} to{opacity:1;transform:scale(1.2)} }
 
     .btn-cancel {
       background: none; border: 1px solid rgba(255,255,255,0.12); border-radius: 0.5rem;
-      color: #a0a8b8; padding: 0.5rem 1.5rem; cursor: pointer; font-family: inherit; font-size: 0.9rem;
+      color: #808898; padding: 0.45rem 1.2rem; cursor: pointer; font-family: inherit; font-size: 0.82rem;
+      transition: all 0.2s;
     }
     .btn-cancel:hover { border-color: #e05050; color: #e05050; }
+
+    /* 3-Second Countdown Overlay */
+    .countdown-overlay {
+      position: fixed; inset: 0; background: rgba(10, 15, 30, 0.92);
+      backdrop-filter: blur(12px); z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .countdown-box { text-align: center; animation: pop-in 0.3s ease-out; }
+    .countdown-label { font-size: 1rem; font-weight: 800; color: #f0c040; letter-spacing: 0.2em; margin-bottom: 0.5rem; }
+    .countdown-number {
+      font-size: 7rem; font-weight: 900; color: #fff; line-height: 1;
+      text-shadow: 0 0 40px rgba(240,192,64,0.8);
+      animation: number-pulse 0.8s ease-in-out infinite alternate;
+    }
+    .countdown-sub { color: #a0a8b8; font-size: 1.1rem; margin-top: 1rem; }
+    @keyframes pop-in { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
+    @keyframes number-pulse { from{transform:scale(0.9);opacity:0.8} to{transform:scale(1.1);opacity:1} }
   `]
 })
 export class WaitingRoomComponent implements OnInit, OnDestroy {
   state: GameState | null = null;
   copied = false;
-  get shareUrl() { return window.location.origin + '/game/' + (this.state?.gameId ?? ''); }
   private sub?: Subscription;
+
+  get isHost(): boolean {
+    return this.state?.yourColor === 'White';
+  }
+
+  get hasOpponent(): boolean {
+    return !!(this.isHost ? this.state?.opponentName : this.state?.yourName);
+  }
 
   constructor(private gameService: GameService, private router: Router) {}
 
@@ -103,7 +271,10 @@ export class WaitingRoomComponent implements OnInit, OnDestroy {
     });
   }
 
-  copyUrl(): void { navigator.clipboard.writeText(this.shareUrl); }
+  async startMatch(): Promise<void> {
+    if (!this.hasOpponent) return;
+    await this.gameService.startMatch();
+  }
 
   cancel(): void {
     this.gameService.clearSession();

@@ -1,9 +1,10 @@
 import {
-  Component, Input, Output, EventEmitter, OnChanges, SimpleChanges
+  Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChessPiece, PieceColor, PieceType } from '../../models/game.model';
 import { GameService } from '../../core/services/game.service';
+import { SoundService } from '../../core/services/sound.service';
 
 interface Square {
   row: number;
@@ -15,6 +16,7 @@ interface Square {
   isSetupZone: boolean;
   isLastMove: boolean;
   isInCheck: boolean;
+  isShaking: boolean;
 }
 
 @Component({
@@ -25,7 +27,7 @@ interface Square {
     <div class="board-wrap" [class.flipped]="flipBoard">
       <div class="board">
         <!-- File labels (a–h) -->
-        <div class="file-labels">
+        <div class="file-labels" [class.flipped]="flipBoard">
           <span *ngFor="let f of displayedFiles">{{ f }}</span>
         </div>
 
@@ -38,7 +40,7 @@ interface Square {
           <div class="squares">
             <ng-container *ngFor="let row of boardRows">
               <div
-                *ngFor="let sq of row"
+                *ngFor="let sq of row; trackBy: trackBySq"
                 class="square"
                 [class.light]="sq.isLight"
                 [class.dark]="!sq.isLight"
@@ -47,9 +49,12 @@ interface Square {
                 [class.setup-zone]="sq.isSetupZone"
                 [class.last-move]="sq.isLastMove"
                 [class.in-check]="sq.isInCheck"
+                [class.shake]="sq.isShaking"
                 (click)="onSquareClick(sq)"
                 (dragover)="onDragOver($event)"
                 (drop)="onDrop($event, sq)"
+                (touchstart)="onTouchStart($event, sq)"
+                (touchend)="onTouchEnd($event, sq)"
               >
                 <!-- Legal-move dot / ring -->
                 <div class="move-dot" *ngIf="sq.isHighlighted && !sq.piece"></div>
@@ -62,6 +67,7 @@ interface Square {
                   [class.white]="sq.piece.color === 'White'"
                   [class.black]="sq.piece.color === 'Black'"
                   [class.draggable]="canDrag(sq.piece)"
+                  [class.fallen-king]="isFallenKing(sq.piece)"
                   draggable="true"
                   (dragstart)="onDragStart($event, sq)"
                   (dragend)="onDragEnd()"
@@ -128,6 +134,30 @@ interface Square {
       background: radial-gradient(circle at center, #ff333399 0%, #cc000044 70%, transparent 100%);
       animation: pulseCheck 1.2s infinite ease-in-out alternate;
     }
+
+    /* Denial shake animation on illegal move */
+    .square.shake {
+      animation: shakeSquare 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+      outline: 2px solid #ff4444 !important;
+      z-index: 10;
+    }
+    .square.shake .piece {
+      animation: shakePiece 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    @keyframes shakeSquare {
+      10%, 90% { transform: translate3d(-2px, 0, 0); }
+      20%, 80% { transform: translate3d(4px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+      40%, 60% { transform: translate3d(6px, 0, 0); }
+    }
+    @keyframes shakePiece {
+      10%, 90% { transform: translate3d(-4px, 0, 0) rotate(-6deg); }
+      20%, 80% { transform: translate3d(6px, 0, 0) rotate(6deg); }
+      30%, 50%, 70% { transform: translate3d(-8px, 0, 0) rotate(-8deg); }
+      40%, 60% { transform: translate3d(8px, 0, 0) rotate(8deg); }
+    }
+
     @keyframes pulseCheck {
       0% { opacity: 0.7; transform: scale(0.98); }
       100% { opacity: 1; transform: scale(1.02); }
@@ -159,46 +189,56 @@ interface Square {
       line-height: 1; position: relative; z-index: 1;
       filter: drop-shadow(1px 3px 4px rgba(0,0,0,0.5));
       transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      animation: popIn 0.2s ease-out;
-    }
-    @keyframes popIn {
-      0% { transform: scale(0.7); opacity: 0.5; }
-      100% { transform: scale(1); opacity: 1; }
     }
     .piece.draggable:hover { transform: scale(1.15) translateY(-2px); cursor: grab; z-index: 3; }
     .piece.draggable:active { transform: scale(1.2) translateY(-4px); cursor: grabbing; z-index: 4; }
     .piece.white { color: #fff8dc; filter: drop-shadow(1px 2px 4px rgba(0,0,0,0.85)); }
     .piece.black { color: #111; filter: drop-shadow(1px 2px 4px rgba(255,255,255,0.4)); }
+    .piece.fallen-king {
+      transform: rotate(-90deg) translateY(8px) !important;
+      transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      filter: drop-shadow(-3px 3px 6px rgba(0,0,0,0.85)) opacity(0.85);
+      z-index: 5;
+    }
 
-    /* Promotion dialog */
+    /* Promotion dialog responsive */
     .promotion-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.75);
       backdrop-filter: blur(4px);
       display: flex; align-items: center; justify-content: center;
       z-index: 100; animation: fadeIn 0.2s ease-out;
+      padding: 1rem;
     }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
     .promotion-dialog {
-      background: #22283a; border-radius: 1.25rem; padding: 1.75rem 2.25rem;
+      background: #22283a; border-radius: 1.25rem; padding: 1.5rem 1.75rem;
       border: 1px solid rgba(255,255,255,0.15);
       box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      max-width: 92vw; box-sizing: border-box;
       animation: modalSlide 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     @keyframes modalSlide {
       from { transform: translateY(20px) scale(0.9); opacity: 0; }
       to { transform: translateY(0) scale(1); opacity: 1; }
     }
-    .promotion-dialog h3 { margin: 0 0 1.2rem; color: #e8e8e8; text-align: center; font-weight: 700; }
-    .promotion-choices { display: flex; gap: 1rem; }
+    .promotion-dialog h3 { margin: 0 0 1rem; color: #e8e8e8; text-align: center; font-weight: 700; font-size: 1.1rem; }
+    .promotion-choices { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
     .promo-btn {
-      display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+      display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
       background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 0.85rem; padding: 0.85rem 1.1rem; cursor: pointer; color: #e8e8e8;
-      font-size: 2.8rem; font-family: inherit; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border-radius: 0.85rem; padding: 0.75rem 0.9rem; cursor: pointer; color: #e8e8e8;
+      font-size: 2.4rem; font-family: inherit; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    .promo-btn span { font-size: 0.75rem; color: #a0a8b8; font-weight: 600; }
+    .promo-btn span { font-size: 0.72rem; color: #a0a8b8; font-weight: 600; }
     .promo-btn:hover { background: rgba(240,192,64,0.2); border-color: #f0c040; transform: translateY(-4px) scale(1.08); }
+
+    @media (max-width: 480px) {
+      .file-labels, .rank-label-col { font-size: 0.6rem; }
+      .file-labels { padding-left: 0.9rem; }
+      .rank-label-col { width: 0.9rem; }
+      .promo-btn { font-size: 2rem; padding: 0.6rem 0.7rem; }
+    }
   `]
 })
 export class ChessBoardComponent implements OnChanges {
@@ -212,6 +252,7 @@ export class ChessBoardComponent implements OnChanges {
   @Input() lastMove: { from: string; to: string } | null = null;
   @Input() disabled: boolean = false;
   @Input() squareSize: number = 72;
+  @Input() defeatedColor: PieceColor | null = null;
 
   @Output() squareClicked = new EventEmitter<{ row: number; col: number; algebraic: string }>();
   @Output() pieceDragged  = new EventEmitter<{ fromRow: number; fromCol: number; toRow: number; toCol: number }>();
@@ -221,12 +262,23 @@ export class ChessBoardComponent implements OnChanges {
   files = ['a','b','c','d','e','f','g','h'];
   ranks = ['8','7','6','5','4','3','2','1'];
 
+  shakingSquareKeys: Set<string> = new Set<string>();
   promotionPending = false;
   promotionOptions: PieceType[] = ['Queen','Rook','Bishop','Knight'];
   private pendingPromotion: { fromRow: number; fromCol: number; toRow: number; toCol: number } | null = null;
   private dragFrom: { row: number; col: number } | null = null;
+  private touchFrom: { row: number; col: number } | null = null;
 
   get flipBoard(): boolean { return this.yourColor === 'Black'; }
+
+  isFallenKing(piece: ChessPiece | undefined): boolean {
+    if (!piece || !this.defeatedColor) return false;
+    return piece.type === 'King' && piece.color === this.defeatedColor;
+  }
+
+  trackBySq(index: number, sq: Square): string {
+    return `${sq.row}_${sq.col}`;
+  }
 
   get displayedFiles(): string[] {
     return this.flipBoard ? ['h','g','f','e','d','c','b','a'] : ['a','b','c','d','e','f','g','h'];
@@ -236,12 +288,38 @@ export class ChessBoardComponent implements OnChanges {
     return this.flipBoard ? ['1','2','3','4','5','6','7','8'] : ['8','7','6','5','4','3','2','1'];
   }
 
-  constructor(private gameService: GameService) {}
+  constructor(private gameService: GameService, private sound: SoundService) {}
+
+  @HostListener('window:resize')
+  onResize(): void {
+    this.updateSquareSize();
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
+    this.updateSquareSize();
     this.buildBoard();
-    // Expose square size as CSS variable
-    document.documentElement.style.setProperty('--sq', `${this.squareSize}px`);
+  }
+
+  private updateSquareSize(): void {
+    const vw = window.innerWidth;
+    let size = this.squareSize;
+    if (vw < 480) {
+      size = Math.max(36, Math.floor((vw - 32) / 8));
+    } else if (vw < 768) {
+      size = Math.max(48, Math.floor((vw - 64) / 8));
+    }
+    document.documentElement.style.setProperty('--sq', `${size}px`);
+  }
+
+  triggerDenial(keys: string[]): void {
+    this.sound.playDenial();
+    keys.forEach(k => this.shakingSquareKeys.add(k));
+    this.buildBoard();
+
+    setTimeout(() => {
+      keys.forEach(k => this.shakingSquareKeys.delete(k));
+      this.buildBoard();
+    }, 400);
   }
 
   private buildBoard(): void {
@@ -258,14 +336,14 @@ export class ChessBoardComponent implements OnChanges {
         const alg = this.gameService.toAlgebraic(actualRow, actualCol);
         const piece = this.pieces.find(p => p.row === actualRow && p.col === actualCol);
 
-        // King in check highlight
         let inCheck = false;
         if (this.isCheck && piece?.type === 'King' && piece?.color === this.currentTurn)
           inCheck = true;
 
-        // Last move highlight
         const isLastMove = !!this.lastMove &&
           (alg === this.lastMove.from || alg === this.lastMove.to);
+
+        const sqKey = `${actualRow}_${actualCol}`;
 
         row.push({
           row: actualRow, col: actualCol,
@@ -275,7 +353,8 @@ export class ChessBoardComponent implements OnChanges {
           isSelected: this.selectedSquare === alg,
           isSetupZone: this.mode === 'setup' && actualRow >= deployMin && actualRow <= deployMax,
           isLastMove,
-          isInCheck: inCheck
+          isInCheck: inCheck,
+          isShaking: this.shakingSquareKeys.has(sqKey)
         });
       }
       rows.push(row);
@@ -285,9 +364,20 @@ export class ChessBoardComponent implements OnChanges {
 
   onSquareClick(sq: Square): void {
     if (this.disabled) return;
+    const alg = this.gameService.toAlgebraic(sq.row, sq.col);
+
+    // If a piece is selected and user clicks an illegal target square:
+    if (this.selectedSquare && !sq.isHighlighted && sq.piece?.color !== this.yourColor && alg !== this.selectedSquare) {
+      const selPos = this.gameService.fromAlgebraic(this.selectedSquare);
+      const selKey = `${selPos.row}_${selPos.col}`;
+      const targetKey = `${sq.row}_${sq.col}`;
+      this.triggerDenial([selKey, targetKey]);
+      return;
+    }
+
     this.squareClicked.emit({
       row: sq.row, col: sq.col,
-      algebraic: this.gameService.toAlgebraic(sq.row, sq.col)
+      algebraic: alg
     });
   }
 
@@ -298,10 +388,15 @@ export class ChessBoardComponent implements OnChanges {
   }
 
   onDragStart(e: DragEvent, sq: Square): void {
-    if (!sq.piece || !this.canDrag(sq.piece)) { e.preventDefault(); return; }
+    if (!sq.piece || !this.canDrag(sq.piece)) {
+      e.preventDefault();
+      if (sq.piece) {
+        this.triggerDenial([`${sq.row}_${sq.col}`]);
+      }
+      return;
+    }
     this.dragFrom = { row: sq.row, col: sq.col };
     e.dataTransfer?.setData('text/plain', `${sq.row},${sq.col}`);
-    // Select this piece to show legal moves
     this.squareClicked.emit({
       row: sq.row, col: sq.col,
       algebraic: this.gameService.toAlgebraic(sq.row, sq.col)
@@ -318,14 +413,29 @@ export class ChessBoardComponent implements OnChanges {
 
     if (fr === sq.row && fc === sq.col) return;
 
-    // Check if it's a pawn promotion
-    const piece = this.pieces.find(p => p.row === fr && p.col === fc);
-    if (piece?.type === 'Pawn' && this.mode === 'play') {
-      const isPromoRow = (piece.color === 'White' && sq.row === 7) ||
-                         (piece.color === 'Black' && sq.row === 0);
-      if (isPromoRow) {
-        this.pendingPromotion = { fromRow: fr, fromCol: fc, toRow: sq.row, toCol: sq.col };
-        this.promotionPending = true;
+    if (this.mode === 'play') {
+      if (!sq.isHighlighted) {
+        const fromKey = `${fr}_${fc}`;
+        const targetKey = `${sq.row}_${sq.col}`;
+        this.triggerDenial([fromKey, targetKey]);
+        return;
+      }
+
+      const piece = this.pieces.find(p => p.row === fr && p.col === fc);
+      if (piece?.type === 'Pawn') {
+        const isPromoRow = (piece.color === 'White' && sq.row === 7) ||
+                           (piece.color === 'Black' && sq.row === 0);
+        if (isPromoRow) {
+          this.pendingPromotion = { fromRow: fr, fromCol: fc, toRow: sq.row, toCol: sq.col };
+          this.promotionPending = true;
+          return;
+        }
+      }
+    } else if (this.mode === 'setup') {
+      if (!sq.isSetupZone || (sq.piece && sq.piece !== this.pieces.find(p => p.row === fr && p.col === fc))) {
+        const fromKey = `${fr}_${fc}`;
+        const targetKey = `${sq.row}_${sq.col}`;
+        this.triggerDenial([fromKey, targetKey]);
         return;
       }
     }
@@ -334,6 +444,18 @@ export class ChessBoardComponent implements OnChanges {
   }
 
   onDragEnd(): void { this.dragFrom = null; }
+
+  onTouchStart(e: TouchEvent, sq: Square): void {
+    if (sq.piece && this.canDrag(sq.piece)) {
+      this.touchFrom = { row: sq.row, col: sq.col };
+    }
+  }
+
+  onTouchEnd(e: TouchEvent, sq: Square): void {
+    if (this.touchFrom) {
+      this.touchFrom = null;
+    }
+  }
 
   selectPromotion(piece: PieceType): void {
     this.promotionPending = false;
@@ -344,8 +466,6 @@ export class ChessBoardComponent implements OnChanges {
       this.pendingPromotion = null;
     }
   }
-
-  // ── Piece symbols ─────────────────────────────────────────────────────────
 
   getPieceSymbol(piece: ChessPiece): string {
     const white: Record<PieceType, string> = {

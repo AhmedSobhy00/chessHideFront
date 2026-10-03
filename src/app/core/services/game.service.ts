@@ -8,7 +8,7 @@ import {
   SetupStartedEvent, SetupPieceMovedEvent,
   BoardRevealedEvent, MoveMadeEvent, LegalMovesEvent,
   GameFinishedEvent, GameStateRestoredEvent,
-  ChessPiece, PieceColor, PieceType
+  ChessPiece, PieceColor, PieceType, GameMode
 } from '../../models/game.model';
 
 import { SoundService } from './sound.service';
@@ -48,14 +48,15 @@ export class GameService implements OnDestroy {
   //  Client → Server calls
   // ════════════════════════════════════════════════════════════════════════
 
-  async createGame(playerName: string): Promise<void> {
+  async createGame(playerName: string, gameMode: GameMode = 'HiddenFormation'): Promise<void> {
     await this.connect();
-    await this.signalr.invoke('CreateGame', { playerName });
+    await this.signalr.invoke('CreateGame', { playerName, gameMode });
   }
 
   async joinGame(gameId: string, playerName: string): Promise<void> {
     await this.connect();
-    await this.signalr.invoke('JoinGame', { gameId, playerName });
+    const cleanId = gameId.trim().toUpperCase();
+    await this.signalr.invoke('JoinGame', { gameId: cleanId, playerName });
   }
 
   async moveSetupPiece(fromRow: number, fromCol: number, toRow: number, toCol: number): Promise<void> {
@@ -102,6 +103,11 @@ export class GameService implements OnDestroy {
     await this.signalr.invoke('Reconnect', { gameId, playerId });
   }
 
+  async startMatch(): Promise<void> {
+    this.sound.playReady();
+    await this.signalr.invoke('StartMatch', this.state.gameId);
+  }
+
   // ════════════════════════════════════════════════════════════════════════
   //  Event handlers (Server → Client)
   // ════════════════════════════════════════════════════════════════════════
@@ -113,6 +119,7 @@ export class GameService implements OnDestroy {
         playerId: e.playerId,
         yourColor: e.yourColor,
         yourName: e.yourName,
+        gameMode: e.gameMode || 'HiddenFormation',
         phase: 'WaitingForPlayers',
       });
       this.saveSession(e.gameId, e.playerId);
@@ -126,18 +133,41 @@ export class GameService implements OnDestroy {
         yourColor: e.yourColor,
         yourName: e.yourName,
         opponentName: e.opponentName,
+        gameMode: e.gameMode || 'HiddenFormation',
         phase: 'WaitingForPlayers',
       });
       this.saveSession(e.gameId, e.playerId);
     });
 
     this.signalr.on<PlayerJoinedEvent>('PlayerJoined', e => {
-      this.patch({ opponentName: e.opponentName });
+      this.patch({
+        opponentName: e.opponentName,
+        gameMode: e.gameMode || this.state.gameMode
+      });
+    });
+
+    this.signalr.on<{ seconds: number }>('MatchStarting', e => {
+      let count = e.seconds || 3;
+      this.patch({ isStartingMatch: true, countdownSeconds: count });
+      this.sound.playCountdownBeep(false);
+
+      const timer = setInterval(() => {
+        count--;
+        if (count > 0) {
+          this.patch({ countdownSeconds: count });
+          this.sound.playCountdownBeep(false);
+        } else {
+          clearInterval(timer);
+          this.patch({ isStartingMatch: false, countdownSeconds: 0 });
+          this.sound.playCountdownBeep(true);
+        }
+      }, 1000);
     });
 
     this.signalr.on<SetupStartedEvent>('SetupStarted', e => {
       this.patch({
         phase: 'Setup',
+        isStartingMatch: false,
         opponentName: e.opponentName,
         setupEndsAt: new Date(e.setupEndsAt),
         yourPieces: [...e.yourPieces],
