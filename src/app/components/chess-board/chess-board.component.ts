@@ -1,5 +1,5 @@
 import {
-  Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener, ElementRef, AfterViewInit
+  Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, HostListener, ElementRef, OnDestroy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChessPiece, PieceColor, PieceType } from '../../models/game.model';
@@ -40,7 +40,7 @@ interface Square {
           </div>
 
           <div class="squares">
-            <ng-container *ngFor="let row of boardRows">
+            <ng-container *ngFor="let row of boardRows; trackBy: trackByRow">
               <div
                 *ngFor="let sq of row; trackBy: trackBySq"
                 class="square"
@@ -60,9 +60,6 @@ interface Square {
                 (dragover)="onDragOver($event)"
                 (drop)="onDrop($event, sq)"
                 (touchstart)="onTouchStart($event, sq)"
-                (touchmove)="onTouchMove($event)"
-                (touchend)="onTouchEnd($event)"
-                (touchcancel)="onTouchCancel()"
               >
                 <!-- Golden crown on top-left of winning king square -->
                 <div class="winner-crown" *ngIf="sq.isWinningKing">👑</div>
@@ -290,7 +287,7 @@ interface Square {
     }
   `]
 })
-export class ChessBoardComponent implements OnChanges, AfterViewInit {
+export class ChessBoardComponent implements OnChanges, OnDestroy {
   @Input() pieces: ChessPiece[] = [];
   @Input() yourColor: PieceColor = 'White';
   @Input() mode: 'setup' | 'play' = 'play';
@@ -329,6 +326,10 @@ export class ChessBoardComponent implements OnChanges, AfterViewInit {
     return this.defeatedColor === 'White' ? 'Black' : 'White';
   }
 
+  trackByRow(index: number): number {
+    return index;
+  }
+
   trackBySq(index: number, sq: Square): string {
     return `${sq.row}_${sq.col}`;
   }
@@ -347,13 +348,26 @@ export class ChessBoardComponent implements OnChanges, AfterViewInit {
     private el: ElementRef
   ) {}
 
-  ngAfterViewInit(): void {
-    const nativeEl = this.el.nativeElement;
-    nativeEl.addEventListener('touchmove', (e: TouchEvent) => {
-      if (this.touchFromSq) {
-        e.preventDefault();
-      }
-    }, { passive: false });
+  // Document-level listeners: survive any re-render of the square elements
+  private readonly docTouchMove = (e: TouchEvent) => this.onTouchMove(e);
+  private readonly docTouchEnd = (e: TouchEvent) => this.onTouchEnd(e);
+  private readonly docTouchCancel = () => this.onTouchCancel();
+
+  private attachDocListeners(): void {
+    document.addEventListener('touchmove', this.docTouchMove, { passive: false });
+    document.addEventListener('touchend', this.docTouchEnd);
+    document.addEventListener('touchcancel', this.docTouchCancel);
+  }
+
+  private detachDocListeners(): void {
+    document.removeEventListener('touchmove', this.docTouchMove);
+    document.removeEventListener('touchend', this.docTouchEnd);
+    document.removeEventListener('touchcancel', this.docTouchCancel);
+  }
+
+  ngOnDestroy(): void {
+    this.detachDocListeners();
+    this.removeGhostPiece();
   }
 
   @HostListener('window:resize')
@@ -518,6 +532,7 @@ export class ChessBoardComponent implements OnChanges, AfterViewInit {
 
     this.touchFromSq = sq;
     const touch = e.touches[0];
+    this.attachDocListeners();
 
     const symbol = this.getPieceSymbol(sq.piece);
     this.createGhostPiece(symbol, sq.piece.color, touch.clientX, touch.clientY);
@@ -537,6 +552,7 @@ export class ChessBoardComponent implements OnChanges, AfterViewInit {
 
   onTouchEnd(e: TouchEvent): void {
     this.lastTouchTime = Date.now();
+    this.detachDocListeners();
 
     if (!this.touchFromSq) {
       this.removeGhostPiece();
@@ -573,6 +589,7 @@ export class ChessBoardComponent implements OnChanges, AfterViewInit {
   }
 
   onTouchCancel(): void {
+    this.detachDocListeners();
     this.removeGhostPiece();
     this.touchFromSq = null;
   }
