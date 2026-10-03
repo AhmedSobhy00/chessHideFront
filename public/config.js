@@ -5,5 +5,5 @@
  */
 window.APP_CONFIG = {
   // apiUrl: "http://localhost:5232/gamehub"
-  apiUrl: "http://hiddenchess.runasp.net/gamehub"
+  apiUrl: "https://hiddenchess.runasp.net/gamehub"
 };
