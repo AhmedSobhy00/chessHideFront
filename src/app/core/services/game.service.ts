@@ -279,6 +279,13 @@ export class GameService implements OnDestroy {
     });
 
     this.signalr.on<GameFinishedEvent>('GameFinished', e => {
+      if (e.result === 'Abandoned' && (this.state.phase === 'WaitingForPlayers' || this.state.phase === 'Setup')) {
+        this._error$.next('Lobby owner left the game.');
+        this.clearSession();
+        this.router.navigate(['/']);
+        return;
+      }
+
       if (e.winner === this.state.yourColor) {
         this.sound.playVictory();
       } else if (e.winner) {
