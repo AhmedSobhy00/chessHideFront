@@ -11,6 +11,8 @@ import {
   ChessPiece, PieceColor, PieceType
 } from '../../models/game.model';
 
+import { SoundService } from './sound.service';
+
 @Injectable({ providedIn: 'root' })
 export class GameService implements OnDestroy {
 
@@ -26,7 +28,11 @@ export class GameService implements OnDestroy {
 
   get state(): GameState { return this._state$.value; }
 
-  constructor(private signalr: SignalRService, private router: Router) {
+  constructor(
+    private signalr: SignalRService,
+    private router: Router,
+    private sound: SoundService
+  ) {
     this.registerEventHandlers();
   }
 
@@ -54,10 +60,12 @@ export class GameService implements OnDestroy {
 
   async moveSetupPiece(fromRow: number, fromCol: number, toRow: number, toCol: number): Promise<void> {
     const { gameId } = this.state;
+    this.sound.playMove();
     await this.signalr.invoke('MoveSetupPiece', { gameId, fromRow, fromCol, toRow, toCol });
   }
 
   async setReady(): Promise<void> {
+    this.sound.playReady();
     await this.signalr.invoke('SetReady', this.state.gameId);
   }
 
@@ -156,6 +164,7 @@ export class GameService implements OnDestroy {
     });
 
     this.signalr.on<BoardRevealedEvent>('BoardRevealed', e => {
+      this.sound.playGameStart();
       this.patch({
         phase: 'Playing',
         allPieces: [...e.pieces],
@@ -181,6 +190,11 @@ export class GameService implements OnDestroy {
         } else {
           capturedB.push({ type: e.capturedPiece.type });
         }
+        this.sound.playCapture();
+      } else if (e.isCheck) {
+        this.sound.playCheck();
+      } else {
+        this.sound.playMove();
       }
 
       this.patch({
@@ -202,6 +216,7 @@ export class GameService implements OnDestroy {
     });
 
     this.signalr.on('DrawOffered', () => {
+      this.sound.playCheck();
       this.patch({ drawOfferedToMe: true });
     });
 
@@ -218,6 +233,13 @@ export class GameService implements OnDestroy {
     });
 
     this.signalr.on<GameFinishedEvent>('GameFinished', e => {
+      if (e.winner === this.state.yourColor) {
+        this.sound.playVictory();
+      } else if (e.winner) {
+        this.sound.playDefeat();
+      } else {
+        this.sound.playMove();
+      }
       this.patch({ phase: 'Finished', result: e });
     });
 

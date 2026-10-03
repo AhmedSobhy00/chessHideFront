@@ -105,59 +105,100 @@ interface Square {
     .file-labels span { width: var(--sq, 72px); text-align: center; }
     .rank-label-col { display: flex; flex-direction: column; justify-content: space-around; width: 1.4rem; }
     .rank-label { font-size: 0.7rem; color: #888; text-align: center; height: var(--sq, 72px); display: flex; align-items: center; justify-content: center; }
-    .squares { display: grid; grid-template-columns: repeat(8, var(--sq, 72px)); grid-template-rows: repeat(8, var(--sq, 72px)); border: 3px solid #333; border-radius: 4px; overflow: hidden; }
+    .squares {
+      display: grid; grid-template-columns: repeat(8, var(--sq, 72px)); grid-template-rows: repeat(8, var(--sq, 72px));
+      border: 3px solid #333; border-radius: 6px; overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    }
 
     .square {
       width: var(--sq, 72px); height: var(--sq, 72px);
       display: flex; align-items: center; justify-content: center;
       position: relative; cursor: pointer;
-      transition: background 0.15s;
+      transition: background 0.2s ease, box-shadow 0.2s ease;
     }
     .square.light  { background: #f0d9b5; }
     .square.dark   { background: #b58863; }
-    .square.selected { outline: 3px solid #f0c040; outline-offset: -3px; }
+    .square.selected { outline: 3px solid #f0c040; outline-offset: -3px; z-index: 2; box-shadow: inset 0 0 12px rgba(240,192,64,0.5); }
     .square.highlighted.light { background: #cdd16f; }
     .square.highlighted.dark  { background: #aaa23a; }
     .square.last-move.light   { background: #cdd16f; }
     .square.last-move.dark    { background: #aaa23a; }
-    .square.in-check { background: radial-gradient(ellipse at center, #e5252555 0%, transparent 75%); }
-    .square.setup-zone { outline: 2px dashed rgba(64,160,240,0.35); outline-offset: -2px; }
+    .square.in-check {
+      background: radial-gradient(circle at center, #ff333399 0%, #cc000044 70%, transparent 100%);
+      animation: pulseCheck 1.2s infinite ease-in-out alternate;
+    }
+    @keyframes pulseCheck {
+      0% { opacity: 0.7; transform: scale(0.98); }
+      100% { opacity: 1; transform: scale(1.02); }
+    }
+    .square.setup-zone { outline: 2px dashed rgba(64,160,240,0.45); outline-offset: -2px; }
 
-    .move-dot { width: 28%; height: 28%; border-radius: 50%; background: rgba(0,0,0,0.25); position: absolute; pointer-events: none; }
-    .move-ring { position: absolute; inset: 0; border-radius: 50%; border: 4px solid rgba(0,0,0,0.25); pointer-events: none; }
+    .move-dot {
+      width: 28%; height: 28%; border-radius: 50%;
+      background: rgba(0,0,0,0.3); position: absolute; pointer-events: none;
+      animation: pulseDot 1.4s infinite ease-in-out alternate;
+    }
+    @keyframes pulseDot {
+      0% { transform: scale(0.85); opacity: 0.6; }
+      100% { transform: scale(1.15); opacity: 0.9; }
+    }
+
+    .move-ring {
+      position: absolute; inset: 0; border-radius: 50%;
+      border: 4px solid rgba(220,50,50,0.6); pointer-events: none;
+      animation: pulseRing 1.2s infinite ease-in-out alternate;
+    }
+    @keyframes pulseRing {
+      0% { transform: scale(0.9); opacity: 0.6; }
+      100% { transform: scale(1.02); opacity: 1; }
+    }
 
     .piece {
-      font-size: calc(var(--sq, 72px) * 0.72);
+      font-size: calc(var(--sq, 72px) * 0.74);
       line-height: 1; position: relative; z-index: 1;
-      filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.6));
-      transition: transform 0.1s;
+      filter: drop-shadow(1px 3px 4px rgba(0,0,0,0.5));
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      animation: popIn 0.2s ease-out;
     }
-    .piece.draggable:hover { transform: scale(1.1); cursor: grab; }
-    .piece.draggable:active { cursor: grabbing; }
-    .piece.white { color: #fff8dc; filter: drop-shadow(1px 2px 3px rgba(0,0,0,0.8)); }
-    .piece.black { color: #111; filter: drop-shadow(1px 2px 3px rgba(255,255,255,0.3)); }
+    @keyframes popIn {
+      0% { transform: scale(0.7); opacity: 0.5; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .piece.draggable:hover { transform: scale(1.15) translateY(-2px); cursor: grab; z-index: 3; }
+    .piece.draggable:active { transform: scale(1.2) translateY(-4px); cursor: grabbing; z-index: 4; }
+    .piece.white { color: #fff8dc; filter: drop-shadow(1px 2px 4px rgba(0,0,0,0.85)); }
+    .piece.black { color: #111; filter: drop-shadow(1px 2px 4px rgba(255,255,255,0.4)); }
 
     /* Promotion dialog */
     .promotion-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
       display: flex; align-items: center; justify-content: center;
-      z-index: 100;
+      z-index: 100; animation: fadeIn 0.2s ease-out;
     }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
     .promotion-dialog {
-      background: #22283a; border-radius: 1rem; padding: 1.5rem 2rem;
-      border: 1px solid rgba(255,255,255,0.1);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      background: #22283a; border-radius: 1.25rem; padding: 1.75rem 2.25rem;
+      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      animation: modalSlide 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    .promotion-dialog h3 { margin: 0 0 1rem; color: #e8e8e8; text-align: center; }
+    @keyframes modalSlide {
+      from { transform: translateY(20px) scale(0.9); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .promotion-dialog h3 { margin: 0 0 1.2rem; color: #e8e8e8; text-align: center; font-weight: 700; }
     .promotion-choices { display: flex; gap: 1rem; }
     .promo-btn {
-      display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+      display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
       background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 0.75rem; padding: 0.75rem 1rem; cursor: pointer; color: #e8e8e8;
-      font-size: 2.5rem; font-family: inherit; transition: all 0.15s;
+      border-radius: 0.85rem; padding: 0.85rem 1.1rem; cursor: pointer; color: #e8e8e8;
+      font-size: 2.8rem; font-family: inherit; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    .promo-btn span { font-size: 0.75rem; color: #a0a8b8; }
-    .promo-btn:hover { background: rgba(240,192,64,0.15); border-color: #f0c040; }
+    .promo-btn span { font-size: 0.75rem; color: #a0a8b8; font-weight: 600; }
+    .promo-btn:hover { background: rgba(240,192,64,0.2); border-color: #f0c040; transform: translateY(-4px) scale(1.08); }
   `]
 })
 export class ChessBoardComponent implements OnChanges {
