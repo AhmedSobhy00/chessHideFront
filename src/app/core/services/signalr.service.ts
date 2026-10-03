@@ -1,12 +1,12 @@
 import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { Subject, BehaviorSubject } from 'rxjs';
+import { AppConfigService } from './app-config.service';
 
 @Injectable({ providedIn: 'root' })
 export class SignalRService {
 
   private hubConnection: signalR.HubConnection | null = null;
-  private readonly HUB_URL = 'http://localhost:5232/gamehub';
 
   // Expose connection state
   readonly isConnected$ = new BehaviorSubject<boolean>(false);
@@ -14,11 +14,16 @@ export class SignalRService {
   // Generic event emitter – GameService subscribes to named events
   private eventHandlers = new Map<string, ((data: any) => void)[]>();
 
+  constructor(private configService: AppConfigService) {}
+
   async connect(): Promise<void> {
     if (this.hubConnection?.state === signalR.HubConnectionState.Connected) return;
 
+    await this.configService.loadConfig();
+    const hubUrl = this.configService.apiUrl;
+
     this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl(this.HUB_URL)
+      .withUrl(hubUrl)
       .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
       .configureLogging(signalR.LogLevel.Warning)
       .build();

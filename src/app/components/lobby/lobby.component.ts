@@ -87,13 +87,13 @@ import { GameMode } from '../../models/game.model';
   `,
   styles: [`
     .lobby-container {
-      min-height: 100vh;
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2.5rem;
-      padding: 2rem;
+      gap: 1.5rem;
+      padding: 1.5rem 1rem;
     }
     .brand { text-align: center; }
     .brand-icon { font-size: 5rem; line-height: 1; margin-bottom: 0.5rem; filter: drop-shadow(0 0 20px #f0c040aa); }

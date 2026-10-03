@@ -81,10 +81,30 @@ import { GameResultComponent } from '../game-result/game-result.component';
           </div>
         </div>
       </ng-container>
+
+      <!-- Creator Footer -->
+      <footer class="site-footer">
+        <div class="footer-content">
+          <span class="created-by">Created by <a href="https://ahmedsobhi.vercel.app/" target="_blank" rel="noopener">Ahmed Sobhi</a></span>
+          <div class="footer-links">
+            <a href="https://ahmedsobhi.vercel.app/" target="_blank" rel="noopener" title="Portfolio">
+              <span class="icon">🌐</span> Portfolio
+            </a>
+            <span class="sep">•</span>
+            <a href="https://linkedin.com/in/ahmedsobhi01" target="_blank" rel="noopener" title="LinkedIn">
+              <span class="icon">💼</span> LinkedIn
+            </a>
+            <span class="sep">•</span>
+            <a href="mailto:ahmedsobhi.dev@gmail.com" title="Email">
+              <span class="icon">✉️</span> Contact
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   `,
   styles: [`
-    .shell { min-height: 100vh; position: relative; }
+    .shell { min-height: 100vh; display: flex; flex-direction: column; position: relative; }
     .error-toast {
       position: fixed; top: 1rem; left: 50%; transform: translateX(-50%);
       background: #c02030; color: #fff; padding: 0.6rem 1.5rem;
@@ -134,6 +154,35 @@ import { GameResultComponent } from '../game-result/game-result.component';
     }
     .btn-join:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(240,192,64,0.35); }
     .btn-join:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Footer styling */
+    .site-footer {
+      width: 100%;
+      padding: 1.25rem 1rem;
+      margin-top: auto;
+      text-align: center;
+      position: relative;
+      z-index: 10;
+    }
+    .footer-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.82rem;
+      color: #808898;
+    }
+    .created-by { color: #a0a8b8; font-weight: 600; }
+    .created-by a { color: #f0c040; text-decoration: none; font-weight: 700; transition: color 0.2s; }
+    .created-by a:hover { color: #fff; text-decoration: underline; }
+
+    .footer-links { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
+    .footer-links a {
+      color: #808898; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem;
+      transition: all 0.2s; font-size: 0.8rem;
+    }
+    .footer-links a:hover { color: #f0c040; transform: translateY(-1px); }
+    .footer-links .sep { color: rgba(255,255,255,0.15); font-size: 0.7rem; }
   `]
 })
 export class GameShellComponent implements OnInit, OnDestroy {

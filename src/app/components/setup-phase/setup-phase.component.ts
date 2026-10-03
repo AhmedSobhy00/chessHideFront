@@ -79,7 +79,7 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     </div>
   `,
   styles: [`
-    .setup-container { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; padding: 1rem; min-height: 100vh; }
+    .setup-container { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; padding: 1rem; flex: 1; }
     .setup-header { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
     .phase-badge { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; color: #40a0f0; text-transform: uppercase; }
     .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: #40a0f0; animation: blink 1.2s infinite; }
