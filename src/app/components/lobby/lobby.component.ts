@@ -12,6 +12,16 @@ import { GameMode } from '../../models/game.model';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="lobby-container">
+      <!-- Arcade Game Switcher -->
+      <div class="game-switcher">
+        <button type="button" class="switcher-btn active">
+          <span class="sw-icon">♟️</span> Hidden Chess
+        </button>
+        <button type="button" class="switcher-btn" (click)="goToBattleship()">
+          <span class="sw-icon">🚢</span> Battleship
+        </button>
+      </div>
+
       <div class="brand">
         <div class="brand-icon">♟</div>
         <h1 class="brand-title">Hidden Formation <span>Chess</span></h1>
@@ -189,6 +199,24 @@ import { GameMode } from '../../models/game.model';
       gap: 0.85rem;
       padding: 1rem 0.75rem;
     }
+    .game-switcher {
+      display: flex;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 4px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      gap: 4px;
+    }
+    .switcher-btn {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.4rem 0.9rem; border-radius: 9999px; border: none;
+      background: transparent; color: #a0a8b8; font-weight: 700;
+      font-size: 0.82rem; cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .switcher-btn:hover:not(.active) { color: #ffffff; background: rgba(255, 255, 255, 0.08); }
+    .switcher-btn.active { background: #f0c040; color: #111827; box-shadow: 0 0 12px rgba(240,192,64,0.3); }
+    .sw-icon { font-size: 1rem; }
+
     .brand { text-align: center; }
     .brand-icon { font-size: 2.8rem; line-height: 1; margin-bottom: 0.2rem; filter: drop-shadow(0 0 15px #f0c040aa); }
     .brand-title { font-size: 1.55rem; font-weight: 800; color: #f0c040; line-height: 1.1; margin: 0 0 0.25rem; }
@@ -429,6 +457,10 @@ export class LobbyComponent implements OnInit, OnDestroy {
       this.loading = false;
       this.loadingAction = null;
     }
+  }
+
+  goToBattleship(): void {
+    this.router.navigate(['/battleship']);
   }
 
   ngOnDestroy(): void { this.sub?.unsubscribe(); }
