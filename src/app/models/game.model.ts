@@ -144,6 +144,13 @@ export interface GameState {
   // Draw
   drawOfferedToMe: boolean;
 
+  // Last Move details for replay
+  lastMoveDetails?: {
+    from: string;
+    to: string;
+    capturedPiece?: { type: PieceType; color: PieceColor } | null;
+  } | null;
+
   // Result
   result: GameFinishedEvent | null;
 }
@@ -175,6 +182,7 @@ export function createEmptyGameState(): GameState {
     capturedByWhite: [],
     capturedByBlack: [],
     drawOfferedToMe: false,
+    lastMoveDetails: null,
     result: null,
   };
 }

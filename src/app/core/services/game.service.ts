@@ -253,6 +253,11 @@ export class GameService implements OnDestroy {
         legalMoves: [],
         enPassantTarget: e.enPassantTarget,
         drawOfferedToMe: false,
+        lastMoveDetails: {
+          from: e.from,
+          to: e.to,
+          capturedPiece: e.capturedPiece
+        }
       });
     });
 

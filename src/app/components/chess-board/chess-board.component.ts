@@ -16,6 +16,7 @@ interface Square {
   isSetupZone: boolean;
   isLastMove: boolean;
   isReplaying?: boolean;
+  capturedPieceGhost?: { type: PieceType; color: PieceColor } | null;
   isInCheck: boolean;
   isWinningKing: boolean;
   isLosingKing: boolean;
@@ -33,30 +34,12 @@ interface Square {
     <div class="board-wrap" [class.flipped]="flipBoard">
       <div class="board">
         <div class="squares">
-          <!-- Organic Cloud Overlay over Top 4 Ranks in Setup Mode -->
+          <!-- Cloud Overlay over Top 4 Ranks in Setup Mode -->
           <div class="cloud-overlay" *ngIf="mode === 'setup'">
-            <div class="cloud-puff puff-1"></div>
-            <div class="cloud-puff puff-2"></div>
-            <div class="cloud-puff puff-3"></div>
-            <div class="cloud-puff puff-4"></div>
-            <div class="cloud-puff puff-5"></div>
-            
-            <div class="cloud-bottom-scallop">
-              <svg viewBox="0 0 1000 120" preserveAspectRatio="none">
-                <path d="M0 0 L0 50 Q 60 110, 120 50 Q 180 120, 260 60 Q 340 115, 420 55 Q 500 125, 580 60 Q 660 115, 740 50 Q 820 110, 900 45 Q 960 105, 1000 50 L1000 0 Z" fill="url(#cloudGrad)"/>
-                <defs>
-                  <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stop-color="#1e293b" stop-opacity="0.96"/>
-                    <stop offset="60%" stop-color="#334155" stop-opacity="0.92"/>
-                    <stop offset="100%" stop-color="#475569" stop-opacity="0.88"/>
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-
+            <div class="cloud-bg"></div>
             <div class="cloud-badge">
-              <span class="cloud-icon">☁️</span>
-              <span class="cloud-text">Opponent Territory (Hidden in Cloud)</span>
+              <span class="cloud-pulse-dot"></span>
+              Opponent is making formation…
             </div>
           </div>
           <ng-container *ngFor="let row of boardRows; trackBy: trackByRow">
@@ -91,6 +74,16 @@ interface Square {
               <!-- Legal-move dot / ring -->
               <div class="move-dot" *ngIf="sq.isHighlighted && !sq.piece"></div>
               <div class="move-ring" *ngIf="sq.isHighlighted && sq.piece"></div>
+
+              <!-- Captured Ghost Piece on target square during replay -->
+              <div
+                *ngIf="sq.isReplaying && sq.capturedPieceGhost"
+                class="piece captured-ghost"
+                [class.white]="sq.capturedPieceGhost.color === 'White'"
+                [class.black]="sq.capturedPieceGhost.color === 'Black'"
+              >
+                {{ getPieceSymbol(sq.capturedPieceGhost) }}
+              </div>
 
               <!-- Chess piece -->
               <div
@@ -166,84 +159,76 @@ interface Square {
       box-shadow: 0 16px 50px rgba(0,0,0,0.5);
     }
 
-    /* Organic Cloud Overlay in Setup Mode covering the top 4 ranks */
+    /* Cloud Overlay in Setup Mode covering the top 4 ranks (top half) */
     .cloud-overlay {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      height: 52%;
+      height: 50%;
       z-index: 20;
       display: flex;
       align-items: center;
       justify-content: center;
+      background: linear-gradient(180deg, 
+        rgba(15, 23, 42, 0.95) 0%, 
+        rgba(30, 41, 59, 0.90) 70%, 
+        rgba(15, 23, 42, 0.85) 100%);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 2px dashed rgba(96, 165, 250, 0.5);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
       pointer-events: none;
-      overflow: visible;
+      overflow: hidden;
     }
 
-    .cloud-puff {
+    .cloud-bg {
       position: absolute;
-      background: radial-gradient(circle, rgba(226, 232, 240, 0.95) 0%, rgba(148, 163, 184, 0.85) 60%, rgba(30, 41, 59, 0.7) 100%);
-      border-radius: 50%;
-      filter: blur(8px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-      animation: cloudFloat 6s ease-in-out infinite alternate;
-    }
-
-    .puff-1 { width: 45%; height: 80%; top: -10%; left: -10%; animation-delay: 0s; }
-    .puff-2 { width: 55%; height: 90%; top: -15%; left: 25%; animation-delay: 1.5s; }
-    .puff-3 { width: 45%; height: 80%; top: -10%; right: -10%; animation-delay: 3s; }
-    .puff-4 { width: 35%; height: 70%; top: 20%; left: 10%; animation-delay: 2s; }
-    .puff-5 { width: 35%; height: 70%; top: 20%; right: 10%; animation-delay: 4s; }
-
-    .cloud-bottom-scallop {
-      position: absolute;
-      bottom: -18px;
-      left: 0;
-      right: 0;
-      height: 40px;
-      z-index: 2;
-      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.5));
-    }
-
-    .cloud-bottom-scallop svg {
-      width: 100%;
-      height: 100%;
-      display: block;
+      inset: -50%;
+      background: 
+        radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 70% 60%, rgba(147, 197, 253, 0.12) 0%, transparent 55%),
+        radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 50%);
+      filter: blur(16px);
+      animation: cloudMistDrift 18s linear infinite;
+      pointer-events: none;
     }
 
     .cloud-badge {
       position: relative;
-      z-index: 10;
+      z-index: 2;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.55rem 1.1rem;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(148, 163, 184, 0.4);
+      gap: 0.6rem;
+      padding: 0.6rem 1.2rem;
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(147, 197, 253, 0.4);
       border-radius: 24px;
-      color: #e2e8f0;
-      font-size: 0.84rem;
+      color: #93c5fd;
+      font-size: 0.88rem;
       font-weight: 700;
       letter-spacing: 0.04em;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-      backdrop-filter: blur(6px);
-      margin-top: -15px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
     }
 
-    .cloud-icon {
-      font-size: 1.2rem;
-      animation: floatCloudIcon 2.5s ease-in-out infinite alternate;
+    .cloud-pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #60a5fa;
+      animation: cloudDotBlink 1.4s infinite ease-in-out;
     }
 
-    @keyframes cloudFloat {
-      0% { transform: translateY(0) scale(1); }
-      100% { transform: translateY(-8px) scale(1.05); }
+    @keyframes cloudMistDrift {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.1); }
+      100% { transform: rotate(360deg) scale(1); }
     }
 
-    @keyframes floatCloudIcon {
-      0% { transform: translateY(0); }
-      100% { transform: translateY(-4px); }
+    @keyframes cloudDotBlink {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.3; transform: scale(0.8); }
     }
 
     .square.replaying {
@@ -258,9 +243,17 @@ interface Square {
       100% { opacity: 1; transform: scale(1); }
     }
 
-    @keyframes floatCloud {
-      0% { transform: translateY(0); }
-      100% { transform: translateY(-3px); }
+    .piece.captured-ghost {
+      position: absolute;
+      z-index: 4;
+      opacity: 0.85;
+      filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.9)) !important;
+      animation: captureGhostPulse 0.85s forwards cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    @keyframes captureGhostPulse {
+      0% { opacity: 0.95; transform: scale(1); }
+      40% { opacity: 0.85; transform: scale(1.12); }
+      100% { opacity: 0; transform: scale(0.3); }
     }
 
     .square {
@@ -429,7 +422,7 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
   @Input() legalMoves: string[] = [];
   @Input() isCheck: boolean = false;
   @Input() currentTurn: PieceColor = 'White';
-  @Input() lastMove: { from: string; to: string } | null = null;
+  @Input() lastMove: { from: string; to: string; capturedPiece?: { type: PieceType; color: PieceColor } | null } | null = null;
   @Input() disabled: boolean = false;
   @Input() squareSize: number = 72;
   @Input() defeatedColor: PieceColor | null = null;
@@ -640,6 +633,10 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
         const isReplayingSquare = this.isReplaying && !!this.lastMove &&
           (alg === this.lastMove.from || alg === this.lastMove.to);
 
+        const capturedGhost = (this.isReplaying && !!this.lastMove && alg === this.lastMove.to && this.lastMove.capturedPiece)
+          ? this.lastMove.capturedPiece
+          : null;
+
         const sqKey = `${actualRow}_${actualCol}`;
 
         const isWinningKing = !!this.defeatedColor && piece?.type === 'King' && piece?.color === this.winningColor;
@@ -658,6 +655,7 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
           isSetupZone: this.mode === 'setup' && actualRow >= deployMin && actualRow <= deployMax,
           isLastMove,
           isReplaying: isReplayingSquare,
+          capturedPieceGhost: capturedGhost,
           isInCheck: inCheck,
           isWinningKing,
           isLosingKing,
@@ -892,7 +890,7 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
     }
   }
 
-  getPieceSymbol(piece: ChessPiece): string {
+  getPieceSymbol(piece: { type: PieceType; color: PieceColor }): string {
     const white: Record<PieceType, string> = {
       King: '♔', Queen: '♕', Rook: '♖', Bishop: '♗', Knight: '♘', Pawn: '♙'
     };

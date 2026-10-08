@@ -276,7 +276,7 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
 
   state!: GameState;
   squareSize = 72;
-  lastMove: { from: string; to: string } | null = null;
+  lastMove: { from: string; to: string; capturedPiece?: { type: PieceType; color: PieceColor } | null } | null = null;
   showResignConfirm = false;
   private pendingPromotion: { from: string; to: string } | null = null;
   private subs: Subscription[] = [];
@@ -348,7 +348,9 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
     this.adjustBoardSize();
     this.subs.push(
       this.gameService.state$.subscribe(s => {
-        if (s.moveHistory && s.moveHistory.length > 0 && s.moveHistory.length !== this.state?.moveHistory?.length) {
+        if (s.lastMoveDetails) {
+          this.lastMove = s.lastMoveDetails;
+        } else if (s.moveHistory && s.moveHistory.length > 0 && s.moveHistory.length !== this.state?.moveHistory?.length) {
           const last = s.moveHistory[s.moveHistory.length - 1];
           this.lastMove = { from: last.substring(0,2), to: last.substring(2,4) };
         }
