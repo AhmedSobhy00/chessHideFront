@@ -8,7 +8,6 @@ interface ShipConfig {
   type: ShipType;
   name: string;
   length: number;
-  icon: string;
 }
 
 @Component({
@@ -16,14 +15,14 @@ interface ShipConfig {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="setup-container" (contextmenu)="$event.preventDefault()">
+    <div class="setup-container" (contextmenu)="onRightClick($event)">
       <div class="setup-header">
         <div class="header-badges">
           <span class="header-badge">FLEET DEPLOYMENT</span>
           <span class="timer-badge" [class.urgent]="timeLeft <= 10">⏳ {{ formattedTime }}</span>
         </div>
         <h2>Position Your Fleet</h2>
-        <p>Left-click to place • <b>Right-click</b> to rotate • Lock when ready</p>
+        <p>Left-click to place • <b>Right-click</b> anywhere to rotate • Lock when ready</p>
       </div>
 
       <div class="setup-layout">
@@ -44,7 +43,20 @@ interface ShipConfig {
               [class.selected]="selectedShipType === s.type"
               (click)="selectShipToPlace(s.type)"
             >
-              <span class="ship-icon">{{ s.icon }}</span>
+              <!-- Mini 2D Shape Matrix Diagram (Same HUD Look) -->
+              <div class="ship-shape-grid">
+                <div *ngFor="let row of getShipShapeMatrix(s.type)" class="mini-shape-row">
+                  <span
+                    *ngFor="let filled of row"
+                    class="mini-shape-cell"
+                    [class.empty]="!filled"
+                    [class.placed-cell]="filled && isShipPlaced(s.type)"
+                    [class.selected-cell]="filled && selectedShipType === s.type && !isShipPlaced(s.type)"
+                    [class.unplaced-cell]="filled && !isShipPlaced(s.type) && selectedShipType !== s.type"
+                  ></span>
+                </div>
+              </div>
+
               <div class="ship-info">
                 <span class="ship-name">{{ s.name }}</span>
                 <span class="ship-len">{{ getShipCellCount(s.type) }} cells</span>
@@ -76,7 +88,7 @@ interface ShipConfig {
             <div class="row-labels">
               <span *ngFor="let r of rows">{{ r }}</span>
             </div>
-            <div class="board-grid" (contextmenu)="onRightClick($event)">
+            <div class="board-grid">
               <div *ngFor="let r of [0,1,2,3,4,5,6,7,8,9]" class="grid-row">
                 <div
                   *ngFor="let c of [0,1,2,3,4,5,6,7,8,9]"
@@ -87,7 +99,6 @@ interface ShipConfig {
                   (mouseenter)="onCellHover(r, c)"
                   (mouseleave)="onCellLeave()"
                   (click)="onCellClick(r, c)"
-                  (contextmenu)="onRightClick($event, r, c)"
                 >
                 </div>
               </div>
@@ -152,7 +163,16 @@ interface ShipConfig {
     .ship-card:hover { border-color: rgba(0,240,255,0.4); background: rgba(0,240,255,0.05); }
     .ship-card.selected { border-color: #00f0ff; background: rgba(0,240,255,0.15); box-shadow: 0 0 10px rgba(0,240,255,0.2); }
     .ship-card.placed { opacity: 0.75; border-color: rgba(60,200,60,0.4); background: rgba(60,200,60,0.06); }
-    .ship-icon { font-size: 1.2rem; }
+
+    /* Mini 2D Shape Grid inside Ship Card */
+    .ship-shape-grid { display: flex; flex-direction: column; gap: 2px; min-width: 32px; justify-content: center; }
+    .mini-shape-row { display: flex; gap: 2px; justify-content: center; }
+    .mini-shape-cell { width: 7px; height: 7px; border-radius: 1.5px; box-sizing: border-box; }
+    .mini-shape-cell.empty { visibility: hidden; }
+    .mini-shape-cell.selected-cell { background: #00f0ff; box-shadow: 0 0 5px #00f0ff; }
+    .mini-shape-cell.placed-cell { background: #3cd23c; box-shadow: 0 0 5px #3cd23c; }
+    .mini-shape-cell.unplaced-cell { background: rgba(255, 255, 255, 0.25); border: 1px solid rgba(255, 255, 255, 0.15); }
+
     .ship-info { flex: 1; display: flex; flex-direction: column; }
     .ship-name { font-weight: 700; font-size: 0.82rem; color: #e8e8e8; }
     .ship-len { font-size: 0.7rem; color: #708098; }
@@ -211,11 +231,11 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
   rows = ['1','2','3','4','5','6','7','8','9','10'];
 
   fleetConfig: ShipConfig[] = [
-    { type: 'Carrier', name: 'Carrier', length: 6, icon: '🚢' },
-    { type: 'Battleship', name: 'Battleship', length: 4, icon: '🛳️' },
-    { type: 'Cruiser', name: 'Cruiser', length: 4, icon: '🛥️' },
-    { type: 'Submarine', name: 'Submarine', length: 3, icon: '🌊' },
-    { type: 'Destroyer', name: 'Destroyer', length: 2, icon: '⛵' }
+    { type: 'Carrier', name: 'Carrier', length: 6 },
+    { type: 'Battleship', name: 'Battleship', length: 4 },
+    { type: 'Cruiser', name: 'Cruiser', length: 4 },
+    { type: 'Submarine', name: 'Submarine', length: 3 },
+    { type: 'Destroyer', name: 'Destroyer', length: 2 }
   ];
 
   selectedShipType: ShipType = 'Carrier';
@@ -292,6 +312,34 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
     return getShipRelativeCells(type, false).length;
   }
 
+  getShipShapeMatrix(type: ShipType): boolean[][] {
+    switch (type) {
+      case 'Carrier':
+        return [
+          [true, true, true, false],
+          [false, true, true, true]
+        ];
+      case 'Cruiser':
+        return [
+          [true, true, true],
+          [false, true, false]
+        ];
+      case 'Battleship':
+        return [
+          [true, true, true, true]
+        ];
+      case 'Submarine':
+        return [
+          [true, true, true]
+        ];
+      case 'Destroyer':
+      default:
+        return [
+          [true, true]
+        ];
+    }
+  }
+
   unplaceShip(event: Event, type: ShipType): void {
     event.stopPropagation();
     this.placedShipsMap.delete(type);
@@ -303,8 +351,11 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
     this.validatePreview();
   }
 
-  onRightClick(event: MouseEvent, row?: number, col?: number): void {
-    event.preventDefault();
+  onRightClick(event: MouseEvent): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     this.toggleOrientation();
   }
 
