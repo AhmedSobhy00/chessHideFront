@@ -20,7 +20,7 @@ interface ShipConfig {
       <div class="setup-header">
         <div class="header-badge">FLEET DEPLOYMENT</div>
         <h2>Position Your Fleet</h2>
-        <p>Left-click to place ship • <b>Right-click</b> anywhere to rotate (↔ / ↕)</p>
+        <p>Left-click to place • <b>Right-click anywhere or press Rotate</b> to change orientation (↔ / ↕)</p>
       </div>
 
       <div class="setup-layout">
@@ -46,11 +46,15 @@ interface ShipConfig {
                 <span class="ship-name">{{ s.name }}</span>
                 <span class="ship-len">{{ getShipCellCount(s.type) }} cells</span>
               </div>
-              <span class="status-icon">{{ isShipPlaced(s.type) ? '✓' : '➔' }}</span>
+              <span class="status-icon" *ngIf="isShipPlaced(s.type)" (click)="unplaceShip($event, s.type)" title="Remove ship">✕</span>
+              <span class="status-icon" *ngIf="!isShipPlaced(s.type)">➔</span>
             </div>
           </div>
 
           <div class="setup-actions">
+            <button class="btn-action rotate-mobile" (click)="toggleOrientation()">
+              🔄 Rotate Ship ({{ isVertical ? '↕ Vertical' : '↔ Horizontal' }})
+            </button>
             <button class="btn-action random" (click)="randomizeFleet()">
               🎲 Randomize Fleet
             </button>
@@ -99,10 +103,10 @@ interface ShipConfig {
   styles: [`
     .setup-container {
       display: flex; flex-direction: column; align-items: center; justify-content: space-evenly;
-      padding: 1rem; min-height: 100dvh; box-sizing: border-box; background: #0b132b; color: #e8e8e8;
+      padding: 0.75rem 0.5rem; min-height: 100dvh; box-sizing: border-box; background: #0b132b; color: #e8e8e8;
       user-select: none;
     }
-    .setup-header { text-align: center; margin-bottom: 0.5rem; }
+    .setup-header { text-align: center; margin-bottom: 0.4rem; }
     .header-badge {
       display: inline-block; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em;
       color: #00f0ff; background: rgba(0,240,255,0.1); border: 1px solid rgba(0,240,255,0.3);
@@ -113,23 +117,23 @@ interface ShipConfig {
     .setup-header p b { color: #00f0ff; }
 
     .setup-layout {
-      display: flex; gap: 1.5rem; align-items: center; justify-content: center; flex-wrap: wrap;
+      display: flex; gap: 1.25rem; align-items: center; justify-content: center; flex-wrap: wrap;
       max-width: 900px; width: 100%;
     }
 
     .setup-panel {
       background: rgba(13, 27, 62, 0.7); border: 1px solid rgba(0,240,255,0.2);
-      border-radius: 1rem; padding: 1rem; display: flex; flex-direction: column; gap: 0.85rem;
-      width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border-radius: 1rem; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.75rem;
+      width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;
     }
     .orientation-toggle { display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; }
     .orientation-toggle .label { color: #8a99ad; font-weight: 600; }
     .btn-rotate {
-      background: rgba(0,240,255,0.12); border: 1px solid rgba(0,240,255,0.3); color: #00f0ff;
+      background: rgba(0,240,255,0.15); border: 1px solid rgba(0,240,255,0.4); color: #00f0ff;
       padding: 0.35rem 0.75rem; border-radius: 0.5rem; cursor: pointer; font-family: inherit; font-size: 0.8rem; font-weight: 700;
       transition: all 0.2s;
     }
-    .btn-rotate:hover { background: rgba(0,240,255,0.25); }
+    .btn-rotate:hover { background: rgba(0,240,255,0.3); }
 
     .ships-list { display: flex; flex-direction: column; gap: 0.4rem; }
     .ship-card {
@@ -139,37 +143,39 @@ interface ShipConfig {
     }
     .ship-card:hover { border-color: rgba(0,240,255,0.4); background: rgba(0,240,255,0.05); }
     .ship-card.selected { border-color: #00f0ff; background: rgba(0,240,255,0.15); box-shadow: 0 0 10px rgba(0,240,255,0.2); }
-    .ship-card.placed { opacity: 0.7; border-color: rgba(60,200,60,0.4); background: rgba(60,200,60,0.06); }
+    .ship-card.placed { opacity: 0.75; border-color: rgba(60,200,60,0.4); background: rgba(60,200,60,0.06); }
     .ship-icon { font-size: 1.2rem; }
     .ship-info { flex: 1; display: flex; flex-direction: column; }
     .ship-name { font-weight: 700; font-size: 0.82rem; color: #e8e8e8; }
     .ship-len { font-size: 0.7rem; color: #708098; }
-    .status-icon { font-size: 0.85rem; color: #00f0ff; font-weight: 800; }
-    .ship-card.placed .status-icon { color: #40d060; }
+    .status-icon { font-size: 0.85rem; color: #00f0ff; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+    .ship-card.placed .status-icon:hover { background: rgba(255,50,50,0.3); color: #ff5555; }
 
-    .setup-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.2rem; }
+    .setup-actions { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.2rem; }
     .btn-action {
       padding: 0.65rem; border-radius: 0.65rem; border: none; font-size: 0.88rem; font-weight: 800;
-      cursor: pointer; font-family: inherit; transition: all 0.2s;
+      cursor: pointer; font-family: inherit; transition: all 0.2s; text-align: center;
     }
+    .btn-action.rotate-mobile { background: rgba(0,240,255,0.15); color: #00f0ff; border: 1px solid rgba(0,240,255,0.3); }
     .btn-action.random { background: rgba(255,255,255,0.08); color: #e8e8e8; border: 1px solid rgba(255,255,255,0.15); }
     .btn-action.random:hover { background: rgba(255,255,255,0.15); }
     .btn-action.ready { background: linear-gradient(135deg, #00f0ff, #0088cc); color: #0b132b; box-shadow: 0 4px 15px rgba(0,240,255,0.3); }
     .btn-action.ready:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,240,255,0.5); }
     .btn-action:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 
-    /* Grid Styling */
+    /* Grid Styling Responsive for Mobile */
     .grid-wrapper { display: flex; flex-direction: column; align-items: flex-end; }
-    .col-labels { display: flex; margin-left: 24px; }
-    .col-labels span { width: 36px; text-align: center; font-size: 0.75rem; font-weight: 700; color: #708098; }
+    .col-labels { display: flex; margin-left: 22px; }
+    .col-labels span { width: clamp(26px, 7.5dvw, 36px); text-align: center; font-size: 0.72rem; font-weight: 700; color: #708098; }
     .grid-body { display: flex; }
-    .row-labels { display: flex; flex-direction: column; justify-content: space-around; width: 24px; text-align: right; padding-right: 6px; }
-    .row-labels span { font-size: 0.75rem; font-weight: 700; color: #708098; height: 36px; line-height: 36px; }
+    .row-labels { display: flex; flex-direction: column; justify-content: space-around; width: 22px; text-align: right; padding-right: 4px; }
+    .row-labels span { font-size: 0.72rem; font-weight: 700; color: #708098; height: clamp(26px, 7.5dvw, 36px); line-height: clamp(26px, 7.5dvw, 36px); }
 
     .board-grid { border: 2px solid rgba(0,240,255,0.3); border-radius: 0.5rem; overflow: hidden; background: rgba(5,12,30,0.9); }
     .grid-row { display: flex; }
     .grid-cell {
-      width: 36px; height: 36px; border: 1px solid rgba(0,240,255,0.1);
+      width: clamp(26px, 7.5dvw, 36px); height: clamp(26px, 7.5dvw, 36px);
+      border: 1px solid rgba(0,240,255,0.1);
       display: flex; align-items: center; justify-content: center; cursor: pointer;
       position: relative; transition: background 0.15s;
     }
@@ -177,7 +183,7 @@ interface ShipConfig {
     .grid-cell.has-ship { background: rgba(0,240,255,0.3); border-color: rgba(0,240,255,0.6); }
     .grid-cell.preview-valid { background: rgba(60,220,90,0.4) !important; }
     .grid-cell.preview-invalid { background: rgba(240,60,60,0.5) !important; }
-    .cell-content { font-size: 1.1rem; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+    .cell-content { font-size: 1.05rem; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
 
     .waiting-banner {
       display: flex; align-items: center; gap: 0.6rem; justify-content: center;
@@ -245,6 +251,13 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
     this.validatePreview();
   }
 
+  unplaceShip(event: MouseEvent, type: ShipType): void {
+    event.stopPropagation();
+    this.placedShipsMap.delete(type);
+    this.selectedShipType = type;
+    this.validatePreview();
+  }
+
   toggleOrientation(): void {
     this.isVertical = !this.isVertical;
     this.validatePreview();
@@ -252,6 +265,48 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
 
   onRightClick(event: MouseEvent, row?: number, col?: number): void {
     event.preventDefault();
+    event.stopPropagation();
+
+    if (row !== undefined && col !== undefined) {
+      // Find ship placed at (row, col)
+      const placedEntry = Array.from(this.placedShipsMap.entries()).find(([_, s]) => {
+        const rel = getShipRelativeCells(s.Type, s.IsVertical);
+        return rel.some(r => (s.StartRow + r.row) === row && (s.StartCol + r.col) === col);
+      });
+
+      if (placedEntry) {
+        const [type, s] = placedEntry;
+        const newVert = !s.IsVertical;
+        // Test if rotated ship is valid at StartRow, StartCol
+        const rel = getShipRelativeCells(type, newVert);
+        let valid = true;
+        for (const rCell of rel) {
+          const r = s.StartRow + rCell.row;
+          const c = s.StartCol + rCell.col;
+          if (r < 0 || r > 9 || c < 0 || c > 9) { valid = false; break; }
+          // Overlap check with other ships
+          Array.from(this.placedShipsMap.entries()).forEach(([otherT, otherS]) => {
+            if (otherT === type) return;
+            const otherRel = getShipRelativeCells(otherS.Type, otherS.IsVertical);
+            if (otherRel.some(or => (otherS.StartRow + or.row) === r && (otherS.StartCol + or.col) === c)) {
+              valid = false;
+            }
+          });
+        }
+
+        if (valid) {
+          s.IsVertical = newVert;
+          this.placedShipsMap.set(type, s);
+          if (this.placedShipsMap.size === 5) {
+            this.battleship.placeFleet(Array.from(this.placedShipsMap.values()));
+          }
+          this.validatePreview();
+          return;
+        }
+      }
+    }
+
+    // Default right-click behavior: toggle current orientation
     this.toggleOrientation();
   }
 

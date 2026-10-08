@@ -6,7 +6,7 @@ import { AppConfigService } from './app-config.service';
 import { SoundService } from './sound.service';
 import {
   BattleshipGameState, createEmptyBattleshipState,
-  PlaceShipDTO, Coordinate, CellState, ShipInstance
+  PlaceShipDTO, Coordinate, CellState, ShipInstance, getShipRelativeCells
 } from '../../models/battleship.model';
 
 @Injectable({ providedIn: 'root' })
@@ -168,16 +168,28 @@ export class BattleshipService implements OnDestroy {
         e.sunkShipCells.forEach((c: Coordinate) => {
           targetGrid[c.row][c.col] = 'Sunk';
         });
-        this.sound.playVictory();
+        if (isMyShot) this.sound.playVictory();
+        else this.sound.playDefeat();
       } else {
         targetGrid[e.row][e.col] = hitState;
         if (e.isHit) this.sound.playCapture();
         else this.sound.playMove();
       }
 
+      const updatedYourShips = [...(this.state.yourShips || [])];
+      if (!isMyShot && e.isHit) {
+        // Track hit on your local fleet ships
+        const ship = updatedYourShips.find(s => s.occupiedCells.some(c => c.row === e.row && c.col === e.col));
+        if (ship) {
+          ship.hits = (ship.hits || 0) + 1;
+          if (e.isSunk) ship.isSunk = true;
+        }
+      }
+
       const patchObj: Partial<BattleshipGameState> = {
         currentTurnPlayerId: e.nextTurnPlayerId,
-        lastShotDetails: e
+        lastShotDetails: e,
+        yourShips: updatedYourShips
       };
 
       if (isMyShot) {
@@ -216,18 +228,18 @@ export class BattleshipService implements OnDestroy {
   updateLocalFleetFromDTOs(dtos: PlaceShipDTO[]): void {
     const grid = Array(10).fill(null).map(() => Array(10).fill('Empty'));
     const instances: ShipInstance[] = dtos.map(d => {
-      const len = d.Type === 'Carrier' ? 5 : d.Type === 'Battleship' ? 4 : (d.Type === 'Cruiser' || d.Type === 'Submarine') ? 3 : 2;
+      const rel = getShipRelativeCells(d.Type, d.IsVertical);
       const occupied: Coordinate[] = [];
-      for (let i = 0; i < len; i++) {
-        const r = d.IsVertical ? d.StartRow + i : d.StartRow;
-        const c = d.IsVertical ? d.StartCol : d.StartCol + i;
+      for (const rCell of rel) {
+        const r = d.StartRow + rCell.row;
+        const c = d.StartCol + rCell.col;
         grid[r][c] = 'Ship';
         occupied.push({ row: r, col: c });
       }
       return {
         id: d.Type,
         type: d.Type,
-        length: len,
+        length: occupied.length,
         startRow: d.StartRow,
         startCol: d.StartCol,
         isVertical: d.IsVertical,
