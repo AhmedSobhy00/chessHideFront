@@ -22,7 +22,7 @@ interface ShipConfig {
           <span class="timer-badge" [class.urgent]="timeLeft <= 10">⏳ {{ formattedTime }}</span>
         </div>
         <h2>Position Your Fleet</h2>
-        <p>Drag or click to place • <b>Right-click</b> anywhere to rotate • Lock when ready</p>
+        <p>Drag or tap to place • <b>Right-click / Rotate btn</b> to rotate • Lock when ready</p>
       </div>
 
       <div class="setup-layout">
@@ -36,6 +36,7 @@ interface ShipConfig {
               [class.selected]="selectedShipType === s.type"
               [draggable]="!isShipPlaced(s.type)"
               (dragstart)="onShipDragStart($event, s.type)"
+              (touchstart)="onTouchStartShipCard($event, s.type)"
               (click)="selectShipToPlace(s.type)"
             >
               <!-- Mini 2D Shape Matrix Diagram (Same HUD Look) -->
@@ -71,38 +72,33 @@ interface ShipConfig {
           </div>
         </div>
 
-        <!-- 10x10 Placement Grid (Guaranteed Viewport Fit) -->
+        <!-- 10x10 Placement Grid (Full Width & Height Adaptive) -->
         <div class="grid-wrapper">
-          <div class="col-labels">
-            <span *ngFor="let c of cols">{{ c }}</span>
-          </div>
-          <div class="grid-body">
-            <div class="row-labels">
-              <span *ngFor="let r of rows">{{ r }}</span>
-            </div>
-            <div class="board-grid">
-              <div *ngFor="let r of [0,1,2,3,4,5,6,7,8,9]" class="grid-row">
-                <div
-                  *ngFor="let c of [0,1,2,3,4,5,6,7,8,9]"
-                  class="grid-cell"
-                  [class.has-ship]="hasShipAt(r, c)"
-                  [class.ship-carrier]="getShipTypeAt(r, c) === 'Carrier'"
-                  [class.ship-battleship]="getShipTypeAt(r, c) === 'Battleship'"
-                  [class.ship-cruiser]="getShipTypeAt(r, c) === 'Cruiser'"
-                  [class.ship-submarine]="getShipTypeAt(r, c) === 'Submarine'"
-                  [class.ship-destroyer]="getShipTypeAt(r, c) === 'Destroyer'"
-                  [class.preview-valid]="isPreviewCell(r, c) && isPreviewValid"
-                  [class.preview-invalid]="isPreviewCell(r, c) && !isPreviewValid"
-                  [draggable]="hasShipAt(r, c)"
-                  (dragstart)="onPlacedShipDragStart($event, r, c)"
-                  (dragover)="onCellDragOver($event, r, c)"
-                  (dragleave)="onCellDragLeave()"
-                  (drop)="onCellDrop($event, r, c)"
-                  (mouseenter)="onCellHover(r, c)"
-                  (mouseleave)="onCellLeave()"
-                  (click)="onCellClick(r, c)"
-                >
-                </div>
+          <div class="board-grid">
+            <div *ngFor="let r of [0,1,2,3,4,5,6,7,8,9]" class="grid-row">
+              <div
+                *ngFor="let c of [0,1,2,3,4,5,6,7,8,9]"
+                class="grid-cell"
+                [attr.data-row]="r"
+                [attr.data-col]="c"
+                [class.has-ship]="hasShipAt(r, c)"
+                [class.ship-carrier]="getShipTypeAt(r, c) === 'Carrier'"
+                [class.ship-battleship]="getShipTypeAt(r, c) === 'Battleship'"
+                [class.ship-cruiser]="getShipTypeAt(r, c) === 'Cruiser'"
+                [class.ship-submarine]="getShipTypeAt(r, c) === 'Submarine'"
+                [class.ship-destroyer]="getShipTypeAt(r, c) === 'Destroyer'"
+                [class.preview-valid]="isPreviewCell(r, c) && isPreviewValid"
+                [class.preview-invalid]="isPreviewCell(r, c) && !isPreviewValid"
+                [draggable]="hasShipAt(r, c)"
+                (dragstart)="onPlacedShipDragStart($event, r, c)"
+                (dragover)="onCellDragOver($event, r, c)"
+                (dragleave)="onCellDragLeave()"
+                (drop)="onCellDrop($event, r, c)"
+                (touchstart)="onTouchStartGridCell($event, r, c)"
+                (mouseenter)="onCellHover(r, c)"
+                (mouseleave)="onCellLeave()"
+                (click)="onCellClick(r, c)"
+              >
               </div>
             </div>
           </div>
@@ -119,7 +115,7 @@ interface ShipConfig {
     .setup-container {
       display: flex; flex-direction: column; align-items: center; justify-content: space-between;
       padding: 0.5rem; height: 100dvh; max-height: 100dvh; box-sizing: border-box; background: #0b132b; color: #e8e8e8;
-      user-select: none; overflow: hidden;
+      user-select: none; -webkit-user-select: none; overflow: hidden; touch-action: none;
     }
     .setup-header { text-align: center; margin-bottom: 0.2rem; }
     .header-badges { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.1rem; }
@@ -138,12 +134,12 @@ interface ShipConfig {
     .setup-header p b { color: #00f0ff; }
 
     .setup-layout {
-      display: flex; gap: 1.5rem; align-items: center; justify-content: center; flex-wrap: wrap;
-      max-width: 960px; width: 100%; flex: 1; min-height: 0;
+      display: flex; gap: 1rem; align-items: center; justify-content: center; flex-wrap: wrap;
+      max-width: 960px; width: 100%; flex: 1; min-height: 0; padding: 0 0.25rem; box-sizing: border-box;
     }
 
     .setup-panel {
-      background: rgba(13, 27, 62, 0.7); border: 1px solid rgba(0,240,255,0.2);
+      background: rgba(13, 27, 62, 0.75); border: 1px solid rgba(0,240,255,0.2);
       border-radius: 1rem; padding: 0.65rem 0.85rem; display: flex; flex-direction: column; gap: 0.6rem;
       width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;
     }
@@ -152,7 +148,7 @@ interface ShipConfig {
     .ship-card {
       display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.65rem;
       background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 0.65rem;
-      cursor: grab; transition: all 0.2s;
+      cursor: grab; transition: all 0.2s; touch-action: none;
     }
     .ship-card:active { cursor: grabbing; }
     .ship-card:hover { border-color: rgba(0,240,255,0.4); background: rgba(0,240,255,0.05); }
@@ -191,38 +187,38 @@ interface ShipConfig {
     .btn-action.ready:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0, 240, 255, 0.5); }
     .btn-action:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 
-    /* Viewport-Adaptive Grid Sizing (Always Fits Entire 10x10 Board On Screen) */
-    .grid-wrapper { display: flex; flex-direction: column; align-items: flex-end; }
-    .col-labels { display: flex; margin-left: 20px; }
-    .col-labels span { width: clamp(24px, 5.0vh, 46px); text-align: center; font-size: 0.72rem; font-weight: 700; color: #708098; }
-    .grid-body { display: flex; }
-    .row-labels { display: flex; flex-direction: column; justify-content: space-around; width: 20px; text-align: right; padding-right: 4px; }
-    .row-labels span { font-size: 0.72rem; font-weight: 700; color: #708098; height: clamp(24px, 5.0vh, 46px); line-height: clamp(24px, 5.0vh, 46px); }
-
-    .board-grid { border: 2px solid rgba(0,240,255,0.3); border-radius: 0.5rem; overflow: hidden; background: rgba(5,12,30,0.9); }
-    .grid-row { display: flex; }
+    /* Full-Width Responsive Placement Grid without numbering labels */
+    .grid-wrapper {
+      display: flex; justify-content: center; align-items: center;
+      width: 100%; max-width: 500px; flex: 1; min-height: 0; box-sizing: border-box;
+    }
+    .board-grid {
+      width: 100%; aspect-ratio: 1 / 1; border: 2.5px solid rgba(0,240,255,0.4);
+      border-radius: 0.65rem; background: rgba(5,12,30,0.95); display: flex; flex-direction: column;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.7); overflow: hidden; touch-action: none;
+    }
+    .grid-row { display: flex; flex: 1; width: 100%; }
     .grid-cell {
-      width: clamp(24px, 5.0vh, 46px); height: clamp(24px, 5.0vh, 46px);
-      border: 1px solid rgba(0,240,255,0.1);
+      flex: 1; height: 100%; aspect-ratio: 1 / 1;
+      border: 1px solid rgba(0,240,255,0.12);
       display: flex; align-items: center; justify-content: center; cursor: pointer;
-      position: relative; transition: background 0.15s; box-sizing: border-box;
+      position: relative; transition: background 0.15s; box-sizing: border-box; touch-action: none;
     }
     .grid-cell.has-ship { cursor: grab; }
     .grid-cell.has-ship:active { cursor: grabbing; }
 
     @media (min-width: 768px) {
-      .setup-layout { flex-direction: row; align-items: flex-start; gap: 2rem; }
+      .setup-layout { flex-direction: row; align-items: center; gap: 2rem; }
       .setup-panel { width: 290px; }
+      .grid-wrapper { max-width: 480px; }
     }
 
     @media (max-width: 767px) {
       .setup-layout { flex-direction: column; align-items: center; width: 100%; gap: 0.5rem; }
-      .setup-panel { width: 100%; max-width: 380px; padding: 0.5rem; }
+      .setup-panel { width: 100%; max-width: 420px; padding: 0.5rem; }
       .ships-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.25rem; }
       .ship-card { padding: 0.25rem 0.4rem; }
-      .col-labels span, .row-labels span, .grid-cell {
-        width: clamp(24px, 7.8vw, 36px); height: clamp(24px, 7.8vw, 36px); line-height: clamp(24px, 7.8vw, 36px);
-      }
+      .grid-wrapper { max-width: 100%; width: 100%; padding: 0 0.25rem; }
     }
 
     /* Distinct Metallic Styling & Outer Hull Borders for Individual Ship Types */
@@ -262,8 +258,8 @@ interface ShipConfig {
       border: 1px solid rgba(0, 240, 255, 0.75);
       box-shadow: inset 0 0 8px rgba(0, 240, 255, 0.45);
     }
-    .grid-cell.preview-valid { background: rgba(60,220,90,0.4) !important; }
-    .grid-cell.preview-invalid { background: rgba(240,60,60,0.5) !important; }
+    .grid-cell.preview-valid { background: rgba(60,220,90,0.45) !important; }
+    .grid-cell.preview-invalid { background: rgba(240,60,60,0.55) !important; }
 
     .waiting-banner {
       display: flex; align-items: center; gap: 0.6rem; justify-content: center;
@@ -295,9 +291,20 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
   isPreviewValid = true;
   draggedShipType: ShipType | null = null;
 
+  // Touch Drag State
+  private touchShipType: ShipType | null = null;
+  private touchOriginalDTO: PlaceShipDTO | null = null;
+  private touchGhostEl: HTMLElement | null = null;
+  private lastTouchTime = 0;
+
   timeLeft = 60;
   private timerId: any = null;
   private sub?: Subscription;
+
+  // Document-level touch event handlers for smooth mobile dragging
+  private readonly docTouchMove = (e: TouchEvent) => this.onTouchMove(e);
+  private readonly docTouchEnd = (e: TouchEvent) => this.onTouchEnd(e);
+  private readonly docTouchCancel = () => this.onTouchCancel();
 
   constructor(private battleship: BattleshipService) {}
 
@@ -316,6 +323,18 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  private attachDocTouchListeners(): void {
+    document.addEventListener('touchmove', this.docTouchMove, { passive: false });
+    document.addEventListener('touchend', this.docTouchEnd);
+    document.addEventListener('touchcancel', this.docTouchCancel);
+  }
+
+  private detachDocTouchListeners(): void {
+    document.removeEventListener('touchmove', this.docTouchMove);
+    document.removeEventListener('touchend', this.docTouchEnd);
+    document.removeEventListener('touchcancel', this.docTouchCancel);
   }
 
   private startSetupTimer(): void {
@@ -409,7 +428,7 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
     this.toggleOrientation();
   }
 
-  // ── Drag & Drop Event Handlers ──────────────────────────────────────────
+  // ── Desktop Drag & Drop ──────────────────────────────────────────────────
 
   onShipDragStart(event: DragEvent, type: ShipType): void {
     this.draggedShipType = type;
@@ -466,6 +485,174 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
       this.selectedShipType = unplaced.type;
     }
     this.validatePreview();
+  }
+
+  // ── Mobile Touch Drag & Drop ─────────────────────────────────────────────
+
+  onTouchStartShipCard(event: TouchEvent, type: ShipType): void {
+    if (this.isShipPlaced(type)) return;
+    this.lastTouchTime = Date.now();
+    this.touchShipType = type;
+    this.selectedShipType = type;
+    this.touchOriginalDTO = null;
+
+    const touch = event.touches[0];
+    this.attachDocTouchListeners();
+    this.createGhostShip(type, touch.clientX, touch.clientY);
+  }
+
+  onTouchStartGridCell(event: TouchEvent, row: number, col: number): void {
+    const type = this.getShipTypeAt(row, col);
+    if (!type) return;
+
+    this.lastTouchTime = Date.now();
+    this.touchShipType = type;
+    this.selectedShipType = type;
+
+    const dto = this.placedShipsMap.get(type);
+    if (dto) {
+      this.touchOriginalDTO = { ...dto };
+      this.isVertical = dto.IsVertical;
+    }
+    this.placedShipsMap.delete(type);
+
+    const touch = event.touches[0];
+    this.attachDocTouchListeners();
+    this.createGhostShip(type, touch.clientX, touch.clientY);
+    this.onCellHover(row, col);
+  }
+
+  private onTouchMove(event: TouchEvent): void {
+    if (!this.touchShipType || !this.touchGhostEl) return;
+    event.preventDefault(); // Stop mobile viewport scroll while dragging ship
+
+    const touch = event.touches[0];
+    this.updateGhostPosition(touch.clientX, touch.clientY);
+
+    // Query cell under touch position
+    this.touchGhostEl.style.display = 'none';
+    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+    this.touchGhostEl.style.display = 'block';
+
+    const cellEl = targetEl?.closest('.grid-cell') as HTMLElement | null;
+    if (cellEl) {
+      const rAttr = cellEl.getAttribute('data-row');
+      const cAttr = cellEl.getAttribute('data-col');
+      if (rAttr !== null && cAttr !== null) {
+        const r = parseInt(rAttr, 10);
+        const c = parseInt(cAttr, 10);
+        this.onCellHover(r, c);
+        return;
+      }
+    }
+    this.onCellLeave();
+  }
+
+  private onTouchEnd(event: TouchEvent): void {
+    this.lastTouchTime = Date.now();
+    this.detachDocTouchListeners();
+
+    if (!this.touchShipType) {
+      this.removeGhostShip();
+      return;
+    }
+
+    const touch = event.changedTouches[0];
+    const clientX = touch.clientX;
+    const clientY = touch.clientY;
+
+    this.removeGhostShip();
+
+    const targetEl = document.elementFromPoint(clientX, clientY);
+    const cellEl = targetEl?.closest('.grid-cell') as HTMLElement | null;
+
+    if (cellEl) {
+      const rAttr = cellEl.getAttribute('data-row');
+      const cAttr = cellEl.getAttribute('data-col');
+      if (rAttr !== null && cAttr !== null) {
+        const r = parseInt(rAttr, 10);
+        const c = parseInt(cAttr, 10);
+        this.hoveredCell = { row: r, col: c };
+        this.validatePreview();
+
+        if (this.isPreviewValid) {
+          this.placedShipsMap.set(this.touchShipType, {
+            Type: this.touchShipType,
+            StartRow: r,
+            StartCol: c,
+            IsVertical: this.isVertical
+          });
+          const unplaced = this.fleetConfig.find(f => !this.placedShipsMap.has(f.type));
+          if (unplaced) {
+            this.selectedShipType = unplaced.type;
+          }
+          this.touchShipType = null;
+          this.touchOriginalDTO = null;
+          this.onCellLeave();
+          return;
+        }
+      }
+    }
+
+    // If invalid or dropped outside, restore original placed DTO if dragging an already placed ship
+    if (this.touchOriginalDTO) {
+      this.placedShipsMap.set(this.touchOriginalDTO.Type, this.touchOriginalDTO);
+    }
+
+    this.touchShipType = null;
+    this.touchOriginalDTO = null;
+    this.onCellLeave();
+  }
+
+  private onTouchCancel(): void {
+    this.detachDocTouchListeners();
+    if (this.touchShipType && this.touchOriginalDTO) {
+      this.placedShipsMap.set(this.touchOriginalDTO.Type, this.touchOriginalDTO);
+    }
+    this.touchShipType = null;
+    this.touchOriginalDTO = null;
+    this.removeGhostShip();
+    this.onCellLeave();
+  }
+
+  private createGhostShip(type: ShipType, x: number, y: number): void {
+    this.removeGhostShip();
+    const ghost = document.createElement('div');
+    ghost.className = 'touch-ship-ghost';
+    ghost.innerHTML = `<span style="font-size:1.1rem;">🚀</span> <b>${type}</b>`;
+    ghost.style.position = 'fixed';
+    ghost.style.left = `${x - 45}px`;
+    ghost.style.top = `${y - 45}px`;
+    ghost.style.zIndex = '9999';
+    ghost.style.pointerEvents = 'none';
+    ghost.style.background = 'rgba(0, 240, 255, 0.25)';
+    ghost.style.border = '2px solid #00f0ff';
+    ghost.style.color = '#ffffff';
+    ghost.style.padding = '6px 14px';
+    ghost.style.borderRadius = '10px';
+    ghost.style.fontFamily = 'sans-serif';
+    ghost.style.fontSize = '0.82rem';
+    ghost.style.boxShadow = '0 0 20px rgba(0, 240, 255, 0.7)';
+    ghost.style.backdropFilter = 'blur(6px)';
+    ghost.style.display = 'flex';
+    ghost.style.alignItems = 'center';
+    ghost.style.gap = '6px';
+    document.body.appendChild(ghost);
+    this.touchGhostEl = ghost;
+  }
+
+  private updateGhostPosition(x: number, y: number): void {
+    if (this.touchGhostEl) {
+      this.touchGhostEl.style.left = `${x - 45}px`;
+      this.touchGhostEl.style.top = `${y - 45}px`;
+    }
+  }
+
+  private removeGhostShip(): void {
+    if (this.touchGhostEl) {
+      this.touchGhostEl.remove();
+      this.touchGhostEl = null;
+    }
   }
 
   onCellHover(row: number, col: number): void {
@@ -527,6 +714,7 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
   }
 
   onCellClick(row: number, col: number): void {
+    if (Date.now() - this.lastTouchTime < 450) return;
     if (!this.selectedShipType || !this.isPreviewValid) return;
 
     this.placedShipsMap.set(this.selectedShipType, {
@@ -558,6 +746,8 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.timerId) clearInterval(this.timerId);
+    this.detachDocTouchListeners();
+    this.removeGhostShip();
     this.sub?.unsubscribe();
   }
 }
