@@ -57,42 +57,6 @@ import { GameMode } from '../../models/game.model';
           </div>
         </div>
 
-        <div class="color-selector">
-          <label>Your Side / Color</label>
-          <div class="color-options">
-            <button
-              type="button"
-              class="color-btn"
-              [class.active]="selectedColor === 'White'"
-              (click)="selectedColor = 'White'"
-              title="Play as White"
-            >
-              <span class="pawn-symbol white-pawn">♙</span>
-              <span class="color-title">White</span>
-            </button>
-            <button
-              type="button"
-              class="color-btn"
-              [class.active]="selectedColor === 'Random'"
-              (click)="selectedColor = 'Random'"
-              title="Random Color"
-            >
-              <span class="pawn-symbol random-pawns">♙♟</span>
-              <span class="color-title">Random</span>
-            </button>
-            <button
-              type="button"
-              class="color-btn"
-              [class.active]="selectedColor === 'Black'"
-              (click)="selectedColor = 'Black'"
-              title="Play as Black"
-            >
-              <span class="pawn-symbol black-pawn">♟</span>
-              <span class="color-title">Black</span>
-            </button>
-          </div>
-        </div>
-
         <div class="actions">
           <button class="btn btn-bot" (click)="openBotModal()" [disabled]="loading">
             <span class="spinner" *ngIf="loading && loadingAction === 'bot'"></span>

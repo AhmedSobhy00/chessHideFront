@@ -19,7 +19,7 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
 
     <div class="game-layout">
 
-      <!-- LEFT PANEL (Desktop: Move History & Captured Pieces) -->
+      <!-- LEFT PANEL (Desktop: Move History) -->
       <div class="game-panel left-panel">
         <!-- Move History Card -->
         <div class="panel-card history-card" *ngIf="state">
@@ -40,38 +40,13 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
             <div class="no-moves-msg">Match in progress…</div>
           </ng-template>
         </div>
-
-        <!-- Captured Pieces Summary (Desktop view) -->
-        <div class="panel-card captured-card desktop-only" *ngIf="state">
-          <div class="card-header">
-            <span class="card-title">⚔️ Captured Pieces</span>
-          </div>
-          <div class="cap-group">
-            <span class="cap-label">You captured:</span>
-            <div class="cap-icons">
-              <span *ngFor="let p of piecesCapturedByYou" class="cap-piece">
-                {{ miniPiece(p.type, opponentColor) }}
-              </span>
-              <span *ngIf="piecesCapturedByYou.length === 0" class="none-text">None yet</span>
-            </div>
-          </div>
-          <div class="cap-group">
-            <span class="cap-label">Opponent captured:</span>
-            <div class="cap-icons">
-              <span *ngFor="let p of piecesCapturedByOpponent" class="cap-piece">
-                {{ miniPiece(p.type, state.yourColor) }}
-              </span>
-              <span *ngIf="piecesCapturedByOpponent.length === 0" class="none-text">None yet</span>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <!-- CENTER PANEL (Board & Status Banner) -->
+      <!-- CENTER PANEL (Opponent Bar -> Status Banner -> Board -> Your Bar) -->
       <div class="game-panel center-panel">
         
-        <!-- Opponent Bar (Mobile layout top bar) -->
-        <div class="player-bar opponent-bar mobile-only" *ngIf="state">
+        <!-- Opponent Bar (Top of Board) -->
+        <div class="player-bar opponent-bar" *ngIf="state">
           <div class="player-info">
             <div class="player-avatar opponent-avatar">{{ initialChar(state.opponentName) }}</div>
             <div class="player-details">
@@ -90,7 +65,7 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
           </div>
         </div>
 
-        <!-- Check / Checkmate status banner slot (fixed height) -->
+        <!-- Check / Checkmate status banner slot -->
         <div class="status-banner-slot">
           <div class="status-banner" *ngIf="state && (state.isCheck || isCheckmate)" [class.checkmate]="isCheckmate">
             {{ isCheckmate ? '♚ Checkmate!' : '♚ Check!' }}
@@ -118,8 +93,8 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
           ></app-chess-board>
         </div>
 
-        <!-- Your Bar (Mobile layout bottom bar) -->
-        <div class="player-bar your-bar mobile-only" *ngIf="state">
+        <!-- Your Bar (Bottom of Board) -->
+        <div class="player-bar your-bar" *ngIf="state">
           <div class="captured-pieces">
             <span *ngFor="let p of piecesCapturedByYou" class="cap-piece">
               {{ miniPiece(p.type, opponentColor) }}
@@ -139,42 +114,9 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
         </div>
       </div>
 
-      <!-- RIGHT PANEL (Desktop: Players Info + Draw offer + Controls) -->
+      <!-- RIGHT PANEL (Desktop: Action Controls & Draw Offer) -->
       <div class="game-panel right-panel">
         
-        <!-- Players Section (Desktop view) -->
-        <div class="panel-card players-card desktop-only" *ngIf="state">
-          <div class="card-header">
-            <span class="card-title">👥 Match Players</span>
-          </div>
-          
-          <!-- Opponent Item -->
-          <div class="player-item" [class.turn-active]="state.phase !== 'Finished' && state.currentTurn !== state.yourColor">
-            <div class="player-avatar opponent-avatar">{{ initialChar(state.opponentName) }}</div>
-            <div class="player-meta">
-              <span class="p-name">{{ state.opponentName || 'Opponent' }}</span>
-              <span class="p-color">{{ opponentColor }}</span>
-            </div>
-            <div class="turn-badge" *ngIf="state.phase !== 'Finished' && state.currentTurn !== state.yourColor">
-              <div class="turn-pulse"></div> Thinking
-            </div>
-          </div>
-
-          <div class="vs-divider"><span>VS</span></div>
-
-          <!-- You Item -->
-          <div class="player-item" [class.turn-active]="state.phase !== 'Finished' && state.currentTurn === state.yourColor">
-            <div class="player-avatar your-avatar">{{ initialChar(state.yourName) }}</div>
-            <div class="player-meta">
-              <span class="p-name">{{ state.yourName }} (You)</span>
-              <span class="p-color">{{ state.yourColor }}</span>
-            </div>
-            <div class="turn-badge your-badge" *ngIf="state.phase !== 'Finished' && state.currentTurn === state.yourColor">
-              <div class="turn-pulse"></div> Your Turn
-            </div>
-          </div>
-        </div>
-
         <!-- Draw offer banner -->
         <div class="draw-offer-banner" *ngIf="state && state.drawOfferedToMe">
           <span>Opponent offers a draw</span>
@@ -184,9 +126,9 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
           </div>
         </div>
 
-        <!-- Action buttons -->
+        <!-- Action buttons / Controls card -->
         <div class="panel-card actions-card" *ngIf="state">
-          <div class="card-header desktop-only">
+          <div class="card-header">
             <span class="card-title">⚡ Controls</span>
           </div>
           <div class="action-buttons">
@@ -255,15 +197,12 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     @media (min-width: 900px) {
       .game-layout {
         display: grid;
-        grid-template-columns: 270px minmax(360px, 580px) 270px;
+        grid-template-columns: 260px minmax(360px, 580px) 260px;
         align-items: center;
         justify-content: center;
         gap: 1.5rem;
-        padding: 1rem 1.5rem;
+        padding: 0.5rem 1.5rem;
       }
-
-      .mobile-only { display: none !important; }
-      .desktop-only { display: flex !important; }
 
       .game-panel {
         display: flex;
@@ -275,7 +214,7 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
       }
 
       .left-panel { justify-content: center; }
-      .center-panel { justify-content: center; align-items: center; gap: 0.5rem; }
+      .center-panel { justify-content: center; align-items: center; gap: 0.25rem; }
       .right-panel { justify-content: center; }
 
       .actions-card .action-buttons {
@@ -305,9 +244,6 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
         justify-content: space-evenly;
       }
 
-      .desktop-only { display: none !important; }
-      .mobile-only { display: flex !important; }
-
       .game-panel { width: 100%; }
 
       .left-panel { order: 5; } /* Move history at bottom */
@@ -315,6 +251,7 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
       .right-panel { order: 4; } /* Action buttons above history */
 
       .actions-card { background: transparent !important; border: none !important; padding: 0 !important; box-shadow: none !important; }
+      .actions-card .card-header { display: none !important; }
       .action-buttons { display: flex; gap: 0.5rem; width: 100%; justify-content: center; }
       .btn-action { padding: 0.4rem 0.9rem; font-size: 0.82rem; }
     }
@@ -343,7 +280,7 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     .move-count { font-size: 0.75rem; color: #808898; font-weight: 600; }
 
     .move-history-scroll {
-      max-height: 240px;
+      max-height: 280px;
       overflow-y: auto;
       padding-right: 0.25rem;
     }
@@ -431,38 +368,6 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     .btn-action.resign:hover:not(:disabled)  { background: rgba(220,60,60,0.25); }
     .btn-action.draw    { background: rgba(100,180,100,0.12); color: #80d080; border: 1px solid rgba(100,180,100,0.25); }
     .btn-action.draw:hover:not(:disabled)    { background: rgba(100,180,100,0.22); }
-
-    .player-item {
-      display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem;
-      border-radius: 0.75rem; background: rgba(0,0,0,0.2);
-      border: 1px solid rgba(255,255,255,0.05); transition: all 0.2s;
-    }
-    .player-item.turn-active {
-      border-color: rgba(240,192,64,0.3); background: rgba(240,192,64,0.06);
-      box-shadow: 0 0 12px rgba(240,192,64,0.15);
-    }
-    .player-meta { flex: 1; display: flex; flex-direction: column; }
-    .p-name { font-weight: 700; color: #e8e8e8; font-size: 0.9rem; }
-    .p-color { font-size: 0.7rem; color: #808898; text-transform: uppercase; letter-spacing: 0.05em; }
-    .vs-divider {
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.7rem; font-weight: 800; color: #606878; letter-spacing: 0.1em;
-      margin: -0.25rem 0;
-    }
-
-    .turn-badge {
-      display: flex; align-items: center; gap: 0.35rem; font-size: 0.72rem;
-      font-weight: 700; color: #60a5fa; background: rgba(96,165,250,0.12);
-      padding: 0.2rem 0.5rem; border-radius: 1rem; border: 1px solid rgba(96,165,250,0.25);
-    }
-    .turn-badge.your-badge {
-      color: #f0c040; background: rgba(240,192,64,0.12); border-color: rgba(240,192,64,0.25);
-    }
-
-    .cap-group { display: flex; flex-direction: column; gap: 0.2rem; }
-    .cap-label { font-size: 0.72rem; color: #808898; text-transform: uppercase; }
-    .cap-icons { display: flex; flex-wrap: wrap; gap: 0.15rem; min-height: 1.2rem; align-items: center; }
-    .none-text { font-size: 0.75rem; color: #505868; font-style: italic; }
 
     /* Resign Dialog */
     .resign-overlay {
@@ -590,11 +495,11 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
     const vh = window.innerHeight;
 
     if (vw >= 900) {
-      const availableW = Math.min(560, vw - 600);
+      const availableW = Math.min(560, vw - 580);
       const maxW = Math.floor(availableW / 8);
-      const maxH = Math.floor((vh - 100) / 8);
+      const maxH = Math.floor((vh - 200) / 8);
       const calculated = Math.min(maxW, maxH);
-      this.squareSize = Math.max(50, Math.min(70, calculated));
+      this.squareSize = Math.max(48, Math.min(68, calculated));
     } else if (vw < 480) {
       const maxW = Math.floor((vw - 24) / 8);
       const maxH = Math.floor((vh - 310) / 8);
