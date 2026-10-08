@@ -69,6 +69,53 @@ export interface BattleshipGameState {
   } | null;
 }
 
+export function getShipRelativeCells(type: ShipType, isVertical: boolean): Coordinate[] {
+  const cells: Coordinate[] = [];
+  switch (type) {
+    case 'Carrier': // 5 cells (3 hull + 2 deck extension)
+      if (!isVertical) {
+        cells.push({ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 2 }, { row: 1, col: 0 }, { row: 1, col: 1 });
+      } else {
+        cells.push({ row: 0, col: 0 }, { row: 1, col: 0 }, { row: 2, col: 0 }, { row: 0, col: 1 }, { row: 1, col: 1 });
+      }
+      break;
+
+    case 'Cruiser': // 4 cells (3 hull + 1 turret protrusion)
+      if (!isVertical) {
+        cells.push({ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 2 }, { row: 1, col: 1 });
+      } else {
+        cells.push({ row: 0, col: 0 }, { row: 1, col: 0 }, { row: 2, col: 0 }, { row: 1, col: 1 });
+      }
+      break;
+
+    case 'Battleship': // 4 cells straight
+      if (!isVertical) {
+        for (let i = 0; i < 4; i++) cells.push({ row: 0, col: i });
+      } else {
+        for (let i = 0; i < 4; i++) cells.push({ row: i, col: 0 });
+      }
+      break;
+
+    case 'Submarine': // 3 cells straight
+      if (!isVertical) {
+        for (let i = 0; i < 3; i++) cells.push({ row: 0, col: i });
+      } else {
+        for (let i = 0; i < 3; i++) cells.push({ row: i, col: 0 });
+      }
+      break;
+
+    case 'Destroyer': // 2 cells straight
+    default:
+      if (!isVertical) {
+        for (let i = 0; i < 2; i++) cells.push({ row: 0, col: i });
+      } else {
+        for (let i = 0; i < 2; i++) cells.push({ row: i, col: 0 });
+      }
+      break;
+  }
+  return cells;
+}
+
 export function createEmptyBattleshipState(): BattleshipGameState {
   const emptyGrid = () => Array(10).fill(null).map(() => Array(10).fill('Empty'));
   return {

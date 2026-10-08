@@ -53,6 +53,26 @@ import { BattleshipResultComponent } from '../battleship-result/battleship-resul
           <app-battleship-result></app-battleship-result>
         </ng-container>
       </ng-container>
+
+      <!-- Creator Footer -->
+      <footer class="site-footer" *ngIf="!state || state.phase === 'WaitingForPlayers'">
+        <div class="footer-content">
+          <span class="created-by">Created by <a href="https://ahmedsobhi.vercel.app/" target="_blank" rel="noopener">Ahmed Sobhi</a></span>
+          <div class="footer-links">
+            <a href="https://ahmedsobhi.vercel.app/" target="_blank" rel="noopener" title="Portfolio">
+              <span class="icon">🌐</span> Portfolio
+            </a>
+            <span class="sep">•</span>
+            <a href="https://linkedin.com/in/ahmedsobhi01" target="_blank" rel="noopener" title="LinkedIn">
+              <span class="icon">💼</span> LinkedIn
+            </a>
+            <span class="sep">•</span>
+            <a href="mailto:ahmedsobhi.dev@gmail.com" title="Email">
+              <span class="icon">✉️</span> Contact
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   `,
   styles: [`
@@ -80,6 +100,19 @@ import { BattleshipResultComponent } from '../battleship-result/battleship-resul
       background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
       color: #e8e8e8; padding: 0.6rem 1.2rem; border-radius: 0.65rem; font-size: 0.85rem; font-weight: 700; cursor: pointer;
     }
+
+    .site-footer {
+      width: 100%; padding: 1.25rem 1rem; margin-top: auto; text-align: center; position: relative; z-index: 10;
+    }
+    .footer-content { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: #808898; }
+    .created-by { color: #8a99ad; font-weight: 600; }
+    .created-by a { color: #00f0ff; text-decoration: none; font-weight: 700; transition: color 0.2s; }
+    .created-by a:hover { color: #fff; text-decoration: underline; }
+
+    .footer-links { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
+    .footer-links a { color: #808898; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem; transition: all 0.2s; font-size: 0.8rem; }
+    .footer-links a:hover { color: #00f0ff; transform: translateY(-1px); }
+    .footer-links .sep { color: rgba(255,255,255,0.15); font-size: 0.7rem; }
   `]
 })
 export class BattleshipShellComponent implements OnInit, OnDestroy {
