@@ -19,6 +19,9 @@ interface Square {
   isWinningKing: boolean;
   isLosingKing: boolean;
   isShaking: boolean;
+  isSliding?: boolean;
+  slideDx?: number;
+  slideDy?: number;
 }
 
 @Component({
@@ -28,71 +31,58 @@ interface Square {
   template: `
     <div class="board-wrap" [class.flipped]="flipBoard">
       <div class="board">
-        <!-- File labels (a–h) -->
-        <div class="file-labels" [class.flipped]="flipBoard">
-          <span *ngFor="let f of displayedFiles">{{ f }}</span>
-        </div>
+        <div class="squares">
+          <ng-container *ngFor="let row of boardRows; trackBy: trackByRow">
+            <div
+              *ngFor="let sq of row; trackBy: trackBySq"
+              class="square"
+              [attr.data-row]="sq.row"
+              [attr.data-col]="sq.col"
+              [class.light]="sq.isLight"
+              [class.dark]="!sq.isLight"
+              [class.highlighted]="sq.isHighlighted"
+              [class.selected]="sq.isSelected"
+              [class.setup-zone]="sq.isSetupZone"
+              [class.last-move]="sq.isLastMove"
+              [class.in-check]="sq.isInCheck"
+              [class.winning-king]="sq.isWinningKing"
+              [class.losing-king]="sq.isLosingKing"
+              [class.shake]="sq.isShaking"
+              [attr.tabindex]="disabled ? null : 0"
+              [attr.aria-label]="getAriaLabel(sq)"
+              (click)="onSquareClick(sq)"
+              (keydown.enter)="onSquareClick(sq)"
+              (keydown.space)="onSquareClick(sq); $event.preventDefault()"
+              (dragover)="onDragOver($event)"
+              (drop)="onDrop($event, sq)"
+              (touchstart)="onTouchStart($event, sq)"
+            >
+              <!-- Golden crown on top-left of winning king square -->
+              <div class="winner-crown" *ngIf="sq.isWinningKing">👑</div>
 
-        <!-- Rank labels + rows + Right rank labels for symmetric margins -->
-        <div class="board-inner">
-          <div class="rank-label-col left">
-            <div *ngFor="let r of displayedRanks" class="rank-label">{{ r }}</div>
-          </div>
+              <!-- Legal-move dot / ring -->
+              <div class="move-dot" *ngIf="sq.isHighlighted && !sq.piece"></div>
+              <div class="move-ring" *ngIf="sq.isHighlighted && sq.piece"></div>
 
-          <div class="squares">
-            <ng-container *ngFor="let row of boardRows; trackBy: trackByRow">
+              <!-- Chess piece -->
               <div
-                *ngFor="let sq of row; trackBy: trackBySq"
-                class="square"
-                [attr.data-row]="sq.row"
-                [attr.data-col]="sq.col"
-                [class.light]="sq.isLight"
-                [class.dark]="!sq.isLight"
-                [class.highlighted]="sq.isHighlighted"
-                [class.selected]="sq.isSelected"
-                [class.setup-zone]="sq.isSetupZone"
-                [class.last-move]="sq.isLastMove"
-                [class.in-check]="sq.isInCheck"
-                [class.winning-king]="sq.isWinningKing"
-                [class.losing-king]="sq.isLosingKing"
-                [class.shake]="sq.isShaking"
-                [attr.tabindex]="disabled ? null : 0"
-                [attr.aria-label]="getAriaLabel(sq)"
-                (click)="onSquareClick(sq)"
-                (keydown.enter)="onSquareClick(sq)"
-                (keydown.space)="onSquareClick(sq); $event.preventDefault()"
-                (dragover)="onDragOver($event)"
-                (drop)="onDrop($event, sq)"
-                (touchstart)="onTouchStart($event, sq)"
+                *ngIf="sq.piece"
+                class="piece"
+                [class.white]="sq.piece.color === 'White'"
+                [class.black]="sq.piece.color === 'Black'"
+                [class.draggable]="canDrag(sq.piece)"
+                [class.sliding]="sq.isSliding"
+                [style.--move-dx]="sq.isSliding ? sq.slideDx + 'px' : '0px'"
+                [style.--move-dy]="sq.isSliding ? sq.slideDy + 'px' : '0px'"
+                draggable="true"
+                (dragstart)="onDragStart($event, sq)"
+                (dragend)="onDragEnd()"
+                [title]="sq.piece.color + ' ' + sq.piece.type"
               >
-                <!-- Golden crown on top-left of winning king square -->
-                <div class="winner-crown" *ngIf="sq.isWinningKing">👑</div>
-
-                <!-- Legal-move dot / ring -->
-                <div class="move-dot" *ngIf="sq.isHighlighted && !sq.piece"></div>
-                <div class="move-ring" *ngIf="sq.isHighlighted && sq.piece"></div>
-
-                <!-- Chess piece -->
-                <div
-                  *ngIf="sq.piece"
-                  class="piece"
-                  [class.white]="sq.piece.color === 'White'"
-                  [class.black]="sq.piece.color === 'Black'"
-                  [class.draggable]="canDrag(sq.piece)"
-                  draggable="true"
-                  (dragstart)="onDragStart($event, sq)"
-                  (dragend)="onDragEnd()"
-                  [title]="sq.piece.color + ' ' + sq.piece.type"
-                >
-                  {{ getPieceSymbol(sq.piece) }}
-                </div>
+                {{ getPieceSymbol(sq.piece) }}
               </div>
-            </ng-container>
-          </div>
-
-          <div class="rank-label-col right">
-            <div *ngFor="let r of displayedRanks" class="rank-label">{{ r }}</div>
-          </div>
+            </div>
+          </ng-container>
         </div>
       </div>
     </div>
@@ -125,21 +115,26 @@ interface Square {
       -webkit-touch-callout: none;
     }
 
-    .board-wrap { position: relative; }
-    .board { display: inline-flex; flex-direction: column; }
-    .board-inner { display: flex; }
-    .file-labels {
-      display: flex; padding-left: 1.4rem; padding-right: 1.4rem;
-      font-size: 0.7rem; color: #ccc; letter-spacing: 0.05em;
+    .board-wrap {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      width: 100%;
     }
-    .file-labels.flipped { flex-direction: row-reverse; }
-    .file-labels span { width: var(--sq, 72px); text-align: center; }
-    .rank-label-col { display: flex; flex-direction: column; justify-content: space-around; width: 1.4rem; }
-    .rank-label { font-size: 0.7rem; color: #ccc; text-align: center; height: var(--sq, 72px); display: flex; align-items: center; justify-content: center; }
+    .board {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 100vw;
+    }
     .squares {
-      display: grid; grid-template-columns: repeat(8, var(--sq, 72px)); grid-template-rows: repeat(8, var(--sq, 72px));
-      border: 3px solid #333; border-radius: 6px; overflow: hidden;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+      display: grid;
+      grid-template-columns: repeat(8, var(--sq, 72px));
+      grid-template-rows: repeat(8, var(--sq, 72px));
+      border: 3px solid #333;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 16px 50px rgba(0,0,0,0.5);
     }
 
     .square {
@@ -237,11 +232,20 @@ interface Square {
       100% { transform: scale(1.02); opacity: 1; }
     }
 
+    @keyframes pieceSlide {
+      from { transform: translate(var(--move-dx, 0px), var(--move-dy, 0px)); }
+      to { transform: translate(0px, 0px); }
+    }
+
     .piece {
       font-size: calc(var(--sq, 72px) * 0.74);
       line-height: 1; position: relative; z-index: 1;
       filter: drop-shadow(1px 3px 4px rgba(0,0,0,0.5));
       transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .piece.sliding {
+      animation: pieceSlide 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      z-index: 50 !important;
     }
     .piece.draggable:hover { transform: scale(1.15) translateY(-2px); cursor: grab; z-index: 3; }
     .piece.draggable:active { transform: scale(1.2) translateY(-4px); cursor: grabbing; z-index: 4; }
@@ -379,27 +383,68 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
     this.updateSquareSize();
   }
 
+  private currentSquareSize = 72;
+  private slidingTarget: { squareAlg: string; dx: number; dy: number } | null = null;
+  private slideTimeout?: any;
+
   ngOnChanges(changes: SimpleChanges): void {
     this.updateSquareSize();
+
+    if (changes['lastMove'] && this.lastMove) {
+      this.calculateMoveSlide(this.lastMove.from, this.lastMove.to);
+    }
+
     this.buildBoard();
+  }
+
+  private calculateMoveSlide(from: string, to: string): void {
+    const fromPos = this.gameService.fromAlgebraic(from);
+    const toPos = this.gameService.fromAlgebraic(to);
+
+    let fromDispRow: number, fromDispCol: number;
+    let toDispRow: number, toDispCol: number;
+
+    if (this.flipBoard) {
+      fromDispRow = fromPos.row;
+      fromDispCol = 7 - fromPos.col;
+      toDispRow = toPos.row;
+      toDispCol = 7 - toPos.col;
+    } else {
+      fromDispRow = 7 - fromPos.row;
+      fromDispCol = fromPos.col;
+      toDispRow = 7 - toPos.row;
+      toDispCol = toPos.col;
+    }
+
+    const dx = (fromDispCol - toDispCol) * this.currentSquareSize;
+    const dy = (fromDispRow - toDispRow) * this.currentSquareSize;
+
+    this.slidingTarget = { squareAlg: to, dx, dy };
+
+    if (this.slideTimeout) clearTimeout(this.slideTimeout);
+    this.slideTimeout = setTimeout(() => {
+      this.slidingTarget = null;
+      this.buildBoard();
+    }, 280);
   }
 
   private updateSquareSize(): void {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    const maxFromWidth = Math.floor((vw - 44) / 8);
-    const maxFromHeight = Math.floor((vh - 340) / 8);
+    const maxFromWidth = Math.floor((vw - 8) / 8);
+    const maxFromHeight = Math.floor((vh - 160) / 8);
     const calculated = Math.min(maxFromWidth, maxFromHeight);
 
     let size = this.squareSize;
     if (vw < 480) {
-      size = Math.max(28, Math.min(40, calculated));
+      size = Math.max(36, Math.min(58, calculated));
     } else if (vw < 768) {
-      size = Math.max(38, Math.min(54, calculated));
+      size = Math.max(48, Math.min(72, calculated));
     } else {
-      size = Math.max(50, Math.min(72, calculated));
+      size = Math.max(64, Math.min(92, calculated));
     }
+    this.currentSquareSize = size;
     document.documentElement.style.setProperty('--sq', `${size}px`);
   }
 
@@ -440,6 +485,10 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
         const isWinningKing = !!this.defeatedColor && piece?.type === 'King' && piece?.color === this.winningColor;
         const isLosingKing  = !!this.defeatedColor && piece?.type === 'King' && piece?.color === this.defeatedColor;
 
+        const isSliding = !!this.slidingTarget && this.slidingTarget.squareAlg === alg;
+        const slideDx = isSliding ? this.slidingTarget!.dx : 0;
+        const slideDy = isSliding ? this.slidingTarget!.dy : 0;
+
         row.push({
           row: actualRow, col: actualCol,
           piece,
@@ -451,7 +500,10 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
           isInCheck: inCheck,
           isWinningKing,
           isLosingKing,
-          isShaking: this.shakingSquareKeys.has(sqKey)
+          isShaking: this.shakingSquareKeys.has(sqKey),
+          isSliding,
+          slideDx,
+          slideDy
         });
       }
       rows.push(row);

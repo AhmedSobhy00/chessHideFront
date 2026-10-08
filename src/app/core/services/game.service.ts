@@ -48,9 +48,14 @@ export class GameService implements OnDestroy {
   //  Client → Server calls
   // ════════════════════════════════════════════════════════════════════════
 
-  async createGame(playerName: string, gameMode: GameMode = 'HiddenFormation'): Promise<void> {
+  async createGame(playerName: string, gameMode: GameMode = 'HiddenFormation', preferredColor: string = 'Random'): Promise<void> {
     await this.connect();
-    await this.signalr.invoke('CreateGame', { playerName, gameMode });
+    await this.signalr.invoke('CreateGame', { playerName, gameMode, preferredColor });
+  }
+
+  async createBotGame(playerName: string, gameMode: GameMode = 'HiddenFormation', difficulty: string = 'Medium', preferredColor: string = 'Random'): Promise<void> {
+    await this.connect();
+    await this.signalr.invoke('CreateBotGame', { playerName, gameMode, difficulty, preferredColor });
   }
 
   async joinGame(gameId: string, playerName: string): Promise<void> {
@@ -126,6 +131,7 @@ export class GameService implements OnDestroy {
         yourName: e.yourName,
         gameMode: e.gameMode || 'HiddenFormation',
         phase: 'WaitingForPlayers',
+        isHost: true,
       });
       this.saveSession(e.gameId, e.playerId);
       this.router.navigate(['/game', e.gameId]);
@@ -140,6 +146,7 @@ export class GameService implements OnDestroy {
         opponentName: e.opponentName,
         gameMode: e.gameMode || 'HiddenFormation',
         phase: 'WaitingForPlayers',
+        isHost: false,
       });
       this.saveSession(e.gameId, e.playerId);
     });

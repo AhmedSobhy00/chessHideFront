@@ -118,6 +118,7 @@ export interface GameState {
   yourName: string;
   opponentName: string;
   gameMode: GameMode;
+  isHost?: boolean;
   phase: GamePhase;
   isStartingMatch: boolean;
   countdownSeconds: number;
@@ -155,6 +156,7 @@ export function createEmptyGameState(): GameState {
     yourName: '',
     opponentName: '',
     gameMode: 'HiddenFormation',
+    isHost: false,
     phase: 'WaitingForPlayers',
     isStartingMatch: false,
     countdownSeconds: 0,

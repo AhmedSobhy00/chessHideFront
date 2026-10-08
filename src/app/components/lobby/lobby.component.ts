@@ -57,10 +57,53 @@ import { GameMode } from '../../models/game.model';
           </div>
         </div>
 
+        <div class="color-selector">
+          <label>Choose Your Color</label>
+          <div class="color-options">
+            <button
+              type="button"
+              class="color-btn"
+              [class.active]="selectedColor === 'White'"
+              (click)="selectedColor = 'White'"
+              title="Play as White"
+            >
+              <span class="pawn-symbol white-pawn">♙</span>
+              <span class="color-title">White</span>
+            </button>
+            <button
+              type="button"
+              class="color-btn"
+              [class.active]="selectedColor === 'Random'"
+              (click)="selectedColor = 'Random'"
+              title="Random Color"
+            >
+              <span class="pawn-symbol random-pawns">♙♟</span>
+              <span class="color-title">Random</span>
+            </button>
+            <button
+              type="button"
+              class="color-btn"
+              [class.active]="selectedColor === 'Black'"
+              (click)="selectedColor = 'Black'"
+              title="Play as Black"
+            >
+              <span class="pawn-symbol black-pawn">♟</span>
+              <span class="color-title">Black</span>
+            </button>
+          </div>
+        </div>
+
         <div class="actions">
+          <button class="btn btn-bot" (click)="openBotModal()" [disabled]="loading">
+            <span class="spinner" *ngIf="loading && loadingAction === 'bot'"></span>
+            <span class="btn-icon" *ngIf="!loading || loadingAction !== 'bot'">🤖</span>
+            {{ (loading && loadingAction === 'bot') ? 'Starting Bot Match...' : 'Play vs Computer (Bot)' }}
+          </button>
+
           <button class="btn btn-primary" (click)="createGame()" [disabled]="loading">
-            <span class="btn-icon">+</span>
-            Create {{ selectedMode === 'Classic' ? 'Classic' : 'Hidden' }} Game
+            <span class="spinner" *ngIf="loading && loadingAction === 'create'"></span>
+            <span class="btn-icon" *ngIf="!loading || loadingAction !== 'create'">+</span>
+            {{ (loading && loadingAction === 'create') ? 'Creating Game...' : ('Create ' + (selectedMode === 'Classic' ? 'Classic' : 'Hidden') + ' Room') }}
           </button>
 
           <div class="divider"><span>or</span></div>
@@ -75,13 +118,62 @@ import { GameMode } from '../../models/game.model';
               (keydown.enter)="joinGame()"
             />
             <button class="btn btn-secondary" (click)="joinGame()" [disabled]="loading || !joinId">
-              Join
+              <span class="spinner" *ngIf="loading && loadingAction === 'join'"></span>
+              {{ (loading && loadingAction === 'join') ? 'Joining...' : 'Join' }}
             </button>
           </div>
         </div>
 
         <div class="error-msg" *ngIf="errorMsg">{{ errorMsg }}</div>
-        <div class="loading" *ngIf="loading">Connecting…</div>
+      </div>
+    </div>
+
+    <!-- Bot Modal -->
+    <div class="modal-overlay" *ngIf="showBotModal" (click)="showBotModal = false">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <h2>🤖 Play vs Computer</h2>
+        <p class="modal-subtitle">Choose computer difficulty level</p>
+
+        <div class="difficulty-options">
+          <button
+            type="button"
+            class="diff-btn"
+            [class.active]="selectedDifficulty === 'Easy'"
+            (click)="selectedDifficulty = 'Easy'"
+          >
+            <span class="diff-icon">🌱</span>
+            <span class="diff-title">Easy</span>
+            <span class="diff-desc">Casual & friendly</span>
+          </button>
+          <button
+            type="button"
+            class="diff-btn"
+            [class.active]="selectedDifficulty === 'Medium'"
+            (click)="selectedDifficulty = 'Medium'"
+          >
+            <span class="diff-icon">⚔️</span>
+            <span class="diff-title">Medium</span>
+            <span class="diff-desc">Balanced opponent</span>
+          </button>
+          <button
+            type="button"
+            class="diff-btn"
+            [class.active]="selectedDifficulty === 'Hard'"
+            (click)="selectedDifficulty = 'Hard'"
+          >
+            <span class="diff-icon">🧠</span>
+            <span class="diff-title">Hard</span>
+            <span class="diff-desc">Tactical master</span>
+          </button>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary btn-full" (click)="startBotGame()" [disabled]="loading">
+            <span class="spinner" *ngIf="loading"></span>
+            {{ loading ? 'Starting Match...' : 'Start Battle' }}
+          </button>
+          <button class="btn btn-link" (click)="showBotModal = false">Cancel</button>
+        </div>
       </div>
     </div>
   `,
@@ -111,7 +203,7 @@ import { GameMode } from '../../models/game.model';
       box-shadow: 0 20px 60px rgba(0,0,0,0.4);
     }
     .name-field { margin-bottom: 1.25rem; }
-    .name-field label, .mode-selector label { display: block; font-size: 0.8rem; color: #a0a8b8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; }
+    .name-field label, .mode-selector label, .color-selector label { display: block; font-size: 0.8rem; color: #a0a8b8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; }
     input[type="text"] {
       width: 100%; box-sizing: border-box;
       background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12);
@@ -121,7 +213,7 @@ import { GameMode } from '../../models/game.model';
     }
     input[type="text"]:focus { border-color: #f0c040; }
 
-    .mode-selector { margin-bottom: 1.5rem; }
+    .mode-selector, .color-selector { margin-bottom: 1.25rem; }
     .mode-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
     .mode-btn {
       display: flex; flex-direction: column; align-items: center; text-align: center;
@@ -139,13 +231,38 @@ import { GameMode } from '../../models/game.model';
     .mode-btn.active .mode-title { color: #f0c040; }
     .mode-desc { font-size: 0.72rem; color: #707888; }
 
-    .actions { display: flex; flex-direction: column; gap: 1rem; }
+    /* Color selector */
+    .color-options { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
+    .color-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 0.75rem; padding: 0.6rem 0.3rem; cursor: pointer;
+      color: #a0a8b8; transition: all 0.2s; font-family: inherit;
+    }
+    .color-btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
+    .color-btn.active {
+      background: rgba(240,192,64,0.12); border-color: #f0c040; color: #e8e8e8;
+      box-shadow: 0 0 15px rgba(240,192,64,0.2);
+    }
+    .pawn-symbol { font-size: 1.6rem; line-height: 1; margin-bottom: 0.2rem; }
+    .white-pawn { color: #f0d9b5; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+    .black-pawn { color: #111; filter: drop-shadow(0 0 2px rgba(255,255,255,0.8)); }
+    .random-pawns { font-size: 1.3rem; letter-spacing: -2px; }
+    .color-title { font-weight: 700; font-size: 0.8rem; color: #e8e8e8; }
+    .color-btn.active .color-title { color: #f0c040; }
+
+    .actions { display: flex; flex-direction: column; gap: 0.85rem; }
     .btn {
       display: flex; align-items: center; justify-content: center; gap: 0.5rem;
       padding: 0.85rem 1.5rem; border-radius: 0.75rem; border: none;
       font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
       font-family: inherit;
     }
+    .btn-bot {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #ffffff;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+    }
+    .btn-bot:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(59, 130, 246, 0.5); }
     .btn-primary { background: linear-gradient(135deg, #f0c040, #d4880a); color: #1a1a2e; }
     .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px #f0c04044; }
     .btn-secondary { background: rgba(255,255,255,0.08); color: #e8e8e8; border: 1px solid rgba(255,255,255,0.12); }
@@ -158,7 +275,51 @@ import { GameMode } from '../../models/game.model';
     .join-row input { flex: 1; }
     .join-row .btn { white-space: nowrap; padding: 0.75rem 1.2rem; }
     .error-msg { margin-top: 1rem; color: #ff7070; font-size: 0.9rem; text-align: center; }
-    .loading { margin-top: 1rem; color: #a0a8b8; text-align: center; font-size: 0.9rem; }
+
+    .spinner {
+      display: inline-block; width: 1rem; height: 1rem;
+      border: 2px solid rgba(255,255,255,0.3); border-radius: 50%;
+      border-top-color: #ffffff; animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
+      z-index: 1000; padding: 1rem; animation: fadeIn 0.2s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal-card {
+      background: #1e2436; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 1.5rem; padding: 1.75rem; width: 100%; max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6); text-align: center;
+    }
+    .modal-card h2 { margin: 0 0 0.25rem; color: #e8e8e8; font-size: 1.4rem; }
+    .modal-subtitle { color: #a0a8b8; font-size: 0.85rem; margin: 0 0 1.25rem; }
+
+    .difficulty-options { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+    .diff-btn {
+      display: flex; align-items: center; gap: 0.85rem; padding: 0.85rem 1rem;
+      background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 0.85rem; cursor: pointer; color: #a0a8b8; transition: all 0.2s;
+      text-align: left; font-family: inherit;
+    }
+    .diff-btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
+    .diff-btn.active {
+      background: rgba(59,130,246,0.15); border-color: #3b82f6; color: #e8e8e8;
+      box-shadow: 0 0 15px rgba(59,130,246,0.25);
+    }
+    .diff-icon { font-size: 1.5rem; }
+    .diff-title { font-weight: 700; color: #e8e8e8; display: block; font-size: 0.95rem; }
+    .diff-btn.active .diff-title { color: #60a5fa; }
+    .diff-desc { font-size: 0.75rem; color: #707888; display: block; }
+
+    .modal-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+    .btn-full { width: 100%; }
+    .btn-link { background: none; border: none; color: #a0a8b8; font-size: 0.9rem; cursor: pointer; padding: 0.5rem; }
+    .btn-link:hover { color: #e8e8e8; }
 
     @media (max-width: 480px) {
       .lobby-container { gap: 1rem; padding: 1rem 0.75rem; }
@@ -168,12 +329,16 @@ import { GameMode } from '../../models/game.model';
       .lobby-card { padding: 1.25rem 1rem; border-radius: 1.2rem; }
       .name-field { margin-bottom: 1rem; }
       input[type="text"] { padding: 0.65rem 0.85rem; font-size: 0.92rem; }
-      .mode-selector { margin-bottom: 1rem; }
+      .mode-selector, .color-selector { margin-bottom: 1rem; }
       .mode-options { gap: 0.5rem; }
       .mode-btn { padding: 0.6rem 0.3rem; }
       .mode-icon { font-size: 1.2rem; margin-bottom: 0.1rem; }
       .mode-title { font-size: 0.78rem; }
       .mode-desc { font-size: 0.65rem; }
+      .color-options { gap: 0.4rem; }
+      .color-btn { padding: 0.5rem 0.2rem; }
+      .pawn-symbol { font-size: 1.3rem; }
+      .color-title { font-size: 0.75rem; }
       .btn { padding: 0.7rem 1rem; font-size: 0.9rem; }
       .join-row .btn { padding: 0.65rem 1rem; }
     }
@@ -183,7 +348,11 @@ export class LobbyComponent implements OnInit, OnDestroy {
   playerName = '';
   joinId = '';
   selectedMode: GameMode = 'HiddenFormation';
+  selectedColor: 'White' | 'Random' | 'Black' = 'Random';
+  selectedDifficulty: 'Easy' | 'Medium' | 'Hard' = 'Medium';
+  showBotModal = false;
   loading = false;
+  loadingAction: 'create' | 'join' | 'bot' | null = null;
   errorMsg = '';
   private sub?: Subscription;
 
@@ -200,17 +369,48 @@ export class LobbyComponent implements OnInit, OnDestroy {
     this.sub = this.gameService.error$.subscribe(msg => {
       this.errorMsg = msg;
       this.loading = false;
+      this.loadingAction = null;
     });
+  }
+
+  openBotModal(): void {
+    this.errorMsg = '';
+    this.showBotModal = true;
+  }
+
+  async startBotGame(): Promise<void> {
+    this.errorMsg = '';
+    this.loading = true;
+    this.loadingAction = 'bot';
+    try {
+      await this.gameService.createBotGame(
+        this.playerName || 'Anonymous',
+        this.selectedMode,
+        this.selectedDifficulty,
+        this.selectedColor
+      );
+      this.showBotModal = false;
+    } catch (e: any) {
+      this.errorMsg = e.message || 'Failed to start bot game';
+      this.loading = false;
+      this.loadingAction = null;
+    }
   }
 
   async createGame(): Promise<void> {
     this.errorMsg = '';
     this.loading = true;
+    this.loadingAction = 'create';
     try {
-      await this.gameService.createGame(this.playerName || 'Anonymous', this.selectedMode);
+      await this.gameService.createGame(
+        this.playerName || 'Anonymous',
+        this.selectedMode,
+        this.selectedColor
+      );
     } catch (e: any) {
       this.errorMsg = e.message || 'Failed to create game';
       this.loading = false;
+      this.loadingAction = null;
     }
   }
 
@@ -218,12 +418,14 @@ export class LobbyComponent implements OnInit, OnDestroy {
     if (!this.joinId) return;
     this.errorMsg = '';
     this.loading = true;
+    this.loadingAction = 'join';
     try {
       await this.gameService.joinGame(this.joinId.trim().toUpperCase(), this.playerName || 'Anonymous');
       this.router.navigate(['/game', this.joinId.trim().toUpperCase()]);
     } catch (e: any) {
       this.errorMsg = e.message || 'Failed to join game';
       this.loading = false;
+      this.loadingAction = null;
     }
   }
 

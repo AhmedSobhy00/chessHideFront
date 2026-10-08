@@ -44,23 +44,27 @@ import { GameState } from '../../models/game.model';
         <div class="players-section">
           <h3>Players</h3>
           <div class="player-card host">
-            <div class="player-avatar white-avatar">♔</div>
+            <div class="player-avatar" [class.white-avatar]="hostColor === 'White'" [class.black-avatar]="hostColor === 'Black'">
+              {{ hostColor === 'White' ? '♔' : '♚' }}
+            </div>
             <div class="player-info">
               <span class="player-name">
                 {{ isHost ? (state?.yourName || 'Host') : (state?.opponentName || 'Waiting...') }}
               </span>
-              <span class="player-role">👑 Room Host (White)</span>
+              <span class="player-role">👑 Room Host ({{ hostColor }})</span>
             </div>
             <span class="status-badge ready">Ready</span>
           </div>
 
           <div class="player-card opponent" [class.joined]="hasOpponent">
-            <div class="player-avatar black-avatar">♚</div>
+            <div class="player-avatar" [class.white-avatar]="challengerColor === 'White'" [class.black-avatar]="challengerColor === 'Black'">
+              {{ challengerColor === 'White' ? '♔' : '♚' }}
+            </div>
             <div class="player-info">
               <span class="player-name">
                 {{ isHost ? (state?.opponentName || 'Waiting for player...') : (state?.yourName || 'You') }}
               </span>
-              <span class="player-role">⚔️ Challenger (Black)</span>
+              <span class="player-role">⚔️ Challenger ({{ challengerColor }})</span>
             </div>
             <span class="status-badge" [class.ready]="hasOpponent" [class.waiting]="!hasOpponent">
               {{ hasOpponent ? 'Joined' : 'Waiting…' }}
@@ -272,7 +276,16 @@ export class WaitingRoomComponent implements OnInit, OnDestroy {
   private sub?: Subscription;
 
   get isHost(): boolean {
-    return this.state?.yourColor === 'White';
+    return this.state?.isHost ?? true;
+  }
+
+  get hostColor(): string {
+    if (this.isHost) return this.state?.yourColor ?? 'White';
+    return this.state?.yourColor === 'White' ? 'Black' : 'White';
+  }
+
+  get challengerColor(): string {
+    return this.hostColor === 'White' ? 'Black' : 'White';
   }
 
   get hasOpponent(): boolean {
