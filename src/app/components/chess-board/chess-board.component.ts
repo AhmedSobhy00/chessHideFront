@@ -15,6 +15,7 @@ interface Square {
   isSelected: boolean;
   isSetupZone: boolean;
   isLastMove: boolean;
+  isReplaying?: boolean;
   isInCheck: boolean;
   isWinningKing: boolean;
   isLosingKing: boolean;
@@ -32,12 +33,30 @@ interface Square {
     <div class="board-wrap" [class.flipped]="flipBoard">
       <div class="board">
         <div class="squares">
-          <!-- Fog Overlay over Top 4 Ranks in Setup Mode -->
-          <div class="fog-overlay" *ngIf="mode === 'setup'">
-            <div class="fog-clouds"></div>
-            <div class="fog-badge">
-              <span class="fog-icon">🌫️</span>
-              <span class="fog-text">Opponent Zone (Hidden)</span>
+          <!-- Organic Cloud Overlay over Top 4 Ranks in Setup Mode -->
+          <div class="cloud-overlay" *ngIf="mode === 'setup'">
+            <div class="cloud-puff puff-1"></div>
+            <div class="cloud-puff puff-2"></div>
+            <div class="cloud-puff puff-3"></div>
+            <div class="cloud-puff puff-4"></div>
+            <div class="cloud-puff puff-5"></div>
+            
+            <div class="cloud-bottom-scallop">
+              <svg viewBox="0 0 1000 120" preserveAspectRatio="none">
+                <path d="M0 0 L0 50 Q 60 110, 120 50 Q 180 120, 260 60 Q 340 115, 420 55 Q 500 125, 580 60 Q 660 115, 740 50 Q 820 110, 900 45 Q 960 105, 1000 50 L1000 0 Z" fill="url(#cloudGrad)"/>
+                <defs>
+                  <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#1e293b" stop-opacity="0.96"/>
+                    <stop offset="60%" stop-color="#334155" stop-opacity="0.92"/>
+                    <stop offset="100%" stop-color="#475569" stop-opacity="0.88"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+
+            <div class="cloud-badge">
+              <span class="cloud-icon">☁️</span>
+              <span class="cloud-text">Opponent Territory (Hidden in Cloud)</span>
             </div>
           </div>
           <ng-container *ngFor="let row of boardRows; trackBy: trackByRow">
@@ -52,6 +71,7 @@ interface Square {
               [class.selected]="sq.isSelected"
               [class.setup-zone]="sq.isSetupZone"
               [class.last-move]="sq.isLastMove"
+              [class.replaying]="sq.isReplaying"
               [class.in-check]="sq.isInCheck"
               [class.winning-king]="sq.isWinningKing"
               [class.losing-king]="sq.isLosingKing"
@@ -146,68 +166,96 @@ interface Square {
       box-shadow: 0 16px 50px rgba(0,0,0,0.5);
     }
 
-    /* Fog Overlay in Setup Mode covering the top 4 ranks */
-    .fog-overlay {
+    /* Organic Cloud Overlay in Setup Mode covering the top 4 ranks */
+    .cloud-overlay {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      height: 50%;
+      height: 52%;
       z-index: 20;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(180deg, 
-        rgba(15, 23, 42, 0.94) 0%, 
-        rgba(30, 41, 59, 0.88) 65%, 
-        rgba(15, 23, 42, 0.72) 100%);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border-bottom: 2px dashed rgba(96, 165, 250, 0.5);
-      overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
       pointer-events: none;
+      overflow: visible;
     }
 
-    .fog-clouds {
+    .cloud-puff {
       position: absolute;
-      inset: -50%;
-      background: 
-        radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.12) 0%, transparent 40%),
-        radial-gradient(circle at 70% 60%, rgba(147, 197, 253, 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 45%);
-      filter: blur(12px);
-      animation: fogDrift 16s linear infinite;
-      pointer-events: none;
+      background: radial-gradient(circle, rgba(226, 232, 240, 0.95) 0%, rgba(148, 163, 184, 0.85) 60%, rgba(30, 41, 59, 0.7) 100%);
+      border-radius: 50%;
+      filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      animation: cloudFloat 6s ease-in-out infinite alternate;
     }
 
-    .fog-badge {
-      position: relative;
+    .puff-1 { width: 45%; height: 80%; top: -10%; left: -10%; animation-delay: 0s; }
+    .puff-2 { width: 55%; height: 90%; top: -15%; left: 25%; animation-delay: 1.5s; }
+    .puff-3 { width: 45%; height: 80%; top: -10%; right: -10%; animation-delay: 3s; }
+    .puff-4 { width: 35%; height: 70%; top: 20%; left: 10%; animation-delay: 2s; }
+    .puff-5 { width: 35%; height: 70%; top: 20%; right: 10%; animation-delay: 4s; }
+
+    .cloud-bottom-scallop {
+      position: absolute;
+      bottom: -18px;
+      left: 0;
+      right: 0;
+      height: 40px;
       z-index: 2;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.5));
+    }
+
+    .cloud-bottom-scallop svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .cloud-badge {
+      position: relative;
+      z-index: 10;
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: rgba(15, 23, 42, 0.82);
-      border: 1px solid rgba(147, 197, 253, 0.35);
-      border-radius: 20px;
-      color: #93c5fd;
-      font-size: 0.82rem;
-      font-weight: 600;
+      padding: 0.55rem 1.1rem;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 24px;
+      color: #e2e8f0;
+      font-size: 0.84rem;
+      font-weight: 700;
       letter-spacing: 0.04em;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-      backdrop-filter: blur(4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      backdrop-filter: blur(6px);
+      margin-top: -15px;
     }
 
-    .fog-icon {
-      font-size: 1.1rem;
-      animation: floatCloud 2.5s ease-in-out infinite alternate;
+    .cloud-icon {
+      font-size: 1.2rem;
+      animation: floatCloudIcon 2.5s ease-in-out infinite alternate;
     }
 
-    @keyframes fogDrift {
-      0% { transform: rotate(0deg) scale(1); }
-      50% { transform: rotate(180deg) scale(1.1); }
-      100% { transform: rotate(360deg) scale(1); }
+    @keyframes cloudFloat {
+      0% { transform: translateY(0) scale(1); }
+      100% { transform: translateY(-8px) scale(1.05); }
+    }
+
+    @keyframes floatCloudIcon {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-4px); }
+    }
+
+    .square.replaying {
+      outline: 3px solid #60a5fa !important;
+      outline-offset: -3px;
+      z-index: 5;
+      box-shadow: inset 0 0 15px rgba(96, 165, 250, 0.6), 0 0 20px rgba(96, 165, 250, 0.4);
+      animation: replayPulse 0.8s infinite alternate ease-in-out;
+    }
+    @keyframes replayPulse {
+      0% { opacity: 0.75; transform: scale(0.98); }
+      100% { opacity: 1; transform: scale(1); }
     }
 
     @keyframes floatCloud {
@@ -461,6 +509,8 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
     this.updateSquareSize();
   }
 
+  isReplaying = false;
+  private replayTimeout?: any;
   private currentSquareSize = 72;
   private slidingTarget: { squareAlg: string; dx: number; dy: number } | null = null;
   private slideTimeout?: any;
@@ -468,11 +518,40 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
   ngOnChanges(changes: SimpleChanges): void {
     this.updateSquareSize();
 
-    if (changes['lastMove'] && this.lastMove) {
-      this.calculateMoveSlide(this.lastMove.from, this.lastMove.to);
+    if (changes['lastMove'] || changes['pieces']) {
+      this.cancelReplay();
+      if (changes['lastMove'] && this.lastMove) {
+        this.calculateMoveSlide(this.lastMove.from, this.lastMove.to);
+      }
     }
 
     this.buildBoard();
+  }
+
+  replayLastMove(): void {
+    if (!this.lastMove) return;
+
+    this.cancelReplay();
+    this.isReplaying = true;
+
+    this.calculateMoveSlide(this.lastMove.from, this.lastMove.to);
+    this.sound.playMove();
+    this.buildBoard();
+
+    this.replayTimeout = setTimeout(() => {
+      this.cancelReplay();
+    }, 850);
+  }
+
+  cancelReplay(): void {
+    if (this.replayTimeout) {
+      clearTimeout(this.replayTimeout);
+      this.replayTimeout = undefined;
+    }
+    if (this.isReplaying) {
+      this.isReplaying = false;
+      this.buildBoard();
+    }
   }
 
   private calculateMoveSlide(from: string, to: string): void {
@@ -558,6 +637,9 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
         const isLastMove = !!this.lastMove &&
           (alg === this.lastMove.from || alg === this.lastMove.to);
 
+        const isReplayingSquare = this.isReplaying && !!this.lastMove &&
+          (alg === this.lastMove.from || alg === this.lastMove.to);
+
         const sqKey = `${actualRow}_${actualCol}`;
 
         const isWinningKing = !!this.defeatedColor && piece?.type === 'King' && piece?.color === this.winningColor;
@@ -575,6 +657,7 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
           isSelected: this.selectedSquare === alg,
           isSetupZone: this.mode === 'setup' && actualRow >= deployMin && actualRow <= deployMax,
           isLastMove,
+          isReplaying: isReplayingSquare,
           isInCheck: inCheck,
           isWinningKing,
           isLosingKing,

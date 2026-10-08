@@ -300,7 +300,10 @@ export class GameService implements OnDestroy {
       } else {
         this.sound.playMove();
       }
-      this.patch({ phase: 'Finished', result: e });
+      // Delay showing the finish result modal so the user can see the winning move & board outcome first
+      setTimeout(() => {
+        this.patch({ phase: 'Finished', result: e });
+      }, 1600);
     });
 
     this.signalr.on<GameStateRestoredEvent>('GameStateRestored', e => {

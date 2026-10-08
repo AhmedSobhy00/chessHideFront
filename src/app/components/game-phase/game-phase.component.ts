@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { GameService } from '../../core/services/game.service';
@@ -92,11 +92,14 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
       </div>
 
       <!-- Action buttons -->
-      <div class="action-buttons" *ngIf="state && state.phase !== 'Finished'">
-        <button class="btn-action resign" (click)="confirmResign()">
+      <div class="action-buttons" *ngIf="state">
+        <button class="btn-action replay" (click)="triggerReplay()" [disabled]="!lastMove" title="Replay the last move made on the board">
+          ↺ Replay Move
+        </button>
+        <button class="btn-action resign" (click)="confirmResign()" *ngIf="state.phase !== 'Finished'">
           🏳 Resign
         </button>
-        <button class="btn-action draw" (click)="offerDraw()" [disabled]="state.drawOfferedToMe">
+        <button class="btn-action draw" (click)="offerDraw()" [disabled]="state.drawOfferedToMe" *ngIf="state.phase !== 'Finished'">
           ½ Offer Draw
         </button>
       </div>
@@ -205,6 +208,8 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
       transition: all 0.2s;
     }
     .btn-action:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-action.replay  { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.35); }
+    .btn-action.replay:hover:not(:disabled)  { background: rgba(96,165,250,0.28); transform: translateY(-1px); }
     .btn-action.resign  { background: rgba(220,60,60,0.15); color: #e07070; border: 1px solid rgba(220,60,60,0.3); }
     .btn-action.resign:hover:not(:disabled)  { background: rgba(220,60,60,0.25); }
     .btn-action.draw    { background: rgba(100,180,100,0.12); color: #80d080; border: 1px solid rgba(100,180,100,0.25); }
@@ -267,12 +272,18 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
   `]
 })
 export class GamePhaseComponent implements OnInit, OnDestroy {
+  @ViewChild(ChessBoardComponent) boardComp!: ChessBoardComponent;
+
   state!: GameState;
   squareSize = 72;
   lastMove: { from: string; to: string } | null = null;
   showResignConfirm = false;
   private pendingPromotion: { from: string; to: string } | null = null;
   private subs: Subscription[] = [];
+
+  triggerReplay(): void {
+    this.boardComp?.replayLastMove();
+  }
 
   initialChar(name?: string | null): string {
     return name && name.length > 0 ? name[0].toUpperCase() : '?';
