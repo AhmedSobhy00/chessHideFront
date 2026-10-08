@@ -17,12 +17,57 @@ import { BattleshipService } from '../../../core/services/battleship.service';
           <span class="sw-icon">♟️</span> Hidden Chess
         </button>
         <button type="button" class="switcher-btn active">
-          <span class="sw-icon">🚢</span> Battleship
+          <span class="sw-icon">🚀</span> Battleship
         </button>
       </div>
 
       <div class="brand">
-        <div class="brand-icon">🚢</div>
+        <div class="brand-icon">
+          <svg class="brand-missile-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Outer Glow Ring -->
+            <circle cx="50" cy="50" r="42" stroke="url(#missileGlowRing)" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6" />
+            
+            <!-- Fire Thruster Flame -->
+            <path d="M 50 72 Q 43 85 50 96 Q 57 85 50 72 Z" fill="url(#fireFlame)" />
+            <path d="M 50 74 Q 46 83 50 90 Q 54 83 50 74 Z" fill="#ffff00" />
+            
+            <!-- Missile Body -->
+            <path d="M 50 8 C 38 25 38 60 40 74 L 60 74 C 62 60 62 25 50 8 Z" fill="url(#missileBodyGrad)" stroke="#00f0ff" stroke-width="2" />
+            
+            <!-- Warhead Tip -->
+            <path d="M 50 8 C 45 16 43 25 43 30 L 57 30 C 57 25 55 16 50 8 Z" fill="url(#warheadGrad)" stroke="#ff3366" stroke-width="1.5" />
+            
+            <!-- Side Fins -->
+            <path d="M 38 58 L 22 74 L 40 72 Z" fill="#1b2a4a" stroke="#00f0ff" stroke-width="1.5" />
+            <path d="M 62 58 L 78 74 L 60 72 Z" fill="#1b2a4a" stroke="#00f0ff" stroke-width="1.5" />
+            
+            <!-- Tech Details / Glowing Lines -->
+            <line x1="50" y1="34" x2="50" y2="62" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" />
+            <circle cx="50" cy="42" r="3" fill="#00f0ff" />
+            <circle cx="50" cy="54" r="2" fill="#ffaa00" />
+
+            <defs>
+              <linearGradient id="missileGlowRing" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#00f0ff" />
+                <stop offset="100%" stop-color="#ff3366" />
+              </linearGradient>
+              <linearGradient id="fireFlame" x1="50" y1="72" x2="50" y2="96" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#ffaa00" />
+                <stop offset="50%" stop-color="#ff3300" />
+                <stop offset="100%" stop-color="rgba(255,51,0,0)" />
+              </linearGradient>
+              <linearGradient id="missileBodyGrad" x1="40" y1="8" x2="60" y2="74" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#16284f" />
+                <stop offset="50%" stop-color="#0d1b3e" />
+                <stop offset="100%" stop-color="#060d20" />
+              </linearGradient>
+              <linearGradient id="warheadGrad" x1="43" y1="8" x2="57" y2="30" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#ff3366" />
+                <stop offset="100%" stop-color="#aa1133" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
         <h1 class="brand-title">NAVAL <span>BATTLESHIP</span></h1>
         <p class="brand-tagline">Deploy your fleet in secret. Command radar strikes.</p>
       </div>
@@ -150,7 +195,8 @@ import { BattleshipService } from '../../../core/services/battleship.service';
     .sw-icon { font-size: 1rem; }
 
     .brand { text-align: center; }
-    .brand-icon { font-size: 2.8rem; line-height: 1; margin-bottom: 0.2rem; filter: drop-shadow(0 0 15px #00f0ffaa); }
+    .brand-icon { display: flex; align-items: center; justify-content: center; margin-bottom: 0.2rem; filter: drop-shadow(0 0 15px #00f0ffaa); }
+    .brand-missile-logo { width: 72px; height: 72px; filter: drop-shadow(0 0 12px rgba(0,240,255,0.7)); }
     .brand-title { font-size: 1.55rem; font-weight: 900; color: #00f0ff; letter-spacing: 0.05em; line-height: 1.1; margin: 0 0 0.25rem; }
     .brand-title span { color: #ffffff; }
     .brand-tagline { color: #8a99ad; font-size: 0.85rem; margin: 0; }

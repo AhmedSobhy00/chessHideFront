@@ -18,7 +18,7 @@ import { GameMode } from '../../models/game.model';
           <span class="sw-icon">♟️</span> Hidden Chess
         </button>
         <button type="button" class="switcher-btn" (click)="goToBattleship()">
-          <span class="sw-icon">🚢</span> Battleship
+          <span class="sw-icon">🚀</span> Battleship
         </button>
       </div>
 
