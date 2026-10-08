@@ -75,6 +75,7 @@ export class BattleshipService implements OnDestroy {
 
   async placeFleet(ships: PlaceShipDTO[]): Promise<void> {
     if (!this.state.gameId) return;
+    this.updateLocalFleetFromDTOs(ships);
     await this.hubConnection?.invoke('PlaceFleet', { gameId: this.state.gameId, ships });
   }
 
@@ -168,12 +169,14 @@ export class BattleshipService implements OnDestroy {
         e.sunkShipCells.forEach((c: Coordinate) => {
           targetGrid[c.row][c.col] = 'Sunk';
         });
-        if (isMyShot) this.sound.playVictory();
-        else this.sound.playDefeat();
+        const count = e.sunkShipCells.length || 4;
+        this.sound.playShipDestroyed(count);
+      } else if (e.isHit) {
+        targetGrid[e.row][e.col] = 'Hit';
+        this.sound.playBattleshipHit();
       } else {
-        targetGrid[e.row][e.col] = hitState;
-        if (e.isHit) this.sound.playCapture();
-        else this.sound.playMove();
+        targetGrid[e.row][e.col] = 'Miss';
+        this.sound.playBattleshipSplash();
       }
 
       const updatedYourShips = [...(this.state.yourShips || [])];

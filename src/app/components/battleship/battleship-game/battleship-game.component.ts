@@ -24,11 +24,11 @@ interface FleetStatusItem {
       [class.enemy-turn-glow]="isOpponentTurn"
       (contextmenu)="$event.preventDefault()"
     >
-      <!-- Top Dual Tactical HUD (Your Fleet & Enemy Fleet Status) -->
+      <!-- Top Tactical HUD (Displays only the fleet being targeted) -->
       <div class="tactical-hud" *ngIf="state">
-        <!-- MY FLEET -->
-        <div class="hud-box">
-          <div class="hud-label">🛡️ MY FLEET</div>
+        <!-- MY FLEET STATUS (Shown when viewing My Fleet) -->
+        <div class="hud-box" *ngIf="activeView === 'fleet'">
+          <div class="hud-label">🛡️ MY FLEET STATUS</div>
           <div class="fleet-diagrams">
             <div
               *ngFor="let item of myFleetStatus"
@@ -52,11 +52,9 @@ interface FleetStatusItem {
           </div>
         </div>
 
-        <div class="hud-divider"></div>
-
-        <!-- ENEMY FLEET STATUS -->
-        <div class="hud-box">
-          <div class="hud-label enemy-label">🎯 ENEMY FLEET</div>
+        <!-- ENEMY FLEET STATUS (Shown when viewing Radar) -->
+        <div class="hud-box" *ngIf="activeView === 'radar'">
+          <div class="hud-label enemy-label">🎯 ENEMY FLEET STATUS</div>
           <div class="fleet-diagrams">
             <div
               *ngFor="let item of enemyFleetStatus"
@@ -104,27 +102,6 @@ interface FleetStatusItem {
           <span class="tab-label">My Fleet (Ocean)</span>
           <span class="pulse-dot enemy" *ngIf="isOpponentTurn"></span>
         </button>
-      </div>
-
-      <!-- Turn & Shot Banner -->
-      <div class="turn-banner" [class.your-turn]="isYourTurn" *ngIf="state && state.phase === 'Playing'">
-        <div class="banner-main">
-          <ng-container *ngIf="shotFeedback; else defaultBanner">
-            <span class="shot-feedback-text">{{ shotFeedback }}</span>
-          </ng-container>
-
-          <ng-template #defaultBanner>
-            <ng-container *ngIf="activeView === 'radar'">
-              <span *ngIf="isYourTurn">🎯 YOUR TURN: Tap enemy coordinates to launch strike!</span>
-              <span *ngIf="isOpponentTurn" class="enemy-text">⏳ OPPONENT TURN: Enemy admiral is aiming…</span>
-            </ng-container>
-
-            <ng-container *ngIf="activeView === 'fleet'">
-              <span *ngIf="isOpponentTurn" class="enemy-text">⚠️ INCOMING STRIKE: Defending your fleet!</span>
-              <span *ngIf="isYourTurn">🛡️ YOUR FLEET: All systems operational. Switch to Radar to strike.</span>
-            </ng-container>
-          </ng-template>
-        </div>
       </div>
 
       <!-- Single Main Ocean Board (10x10 Grid) -->
@@ -330,6 +307,13 @@ interface FleetStatusItem {
       box-shadow: inset 0 0 8px rgba(0, 240, 255, 0.45);
     }
 
+    /* Metallic Sunk Ship Blocks for Radar Grid when Enemy Ship is Destroyed */
+    .radar-cell.cell-sunk {
+      background: linear-gradient(135deg, rgba(255, 50, 50, 0.5) 0%, rgba(180, 20, 20, 0.4) 100%) !important;
+      border: 1px solid rgba(255, 60, 60, 0.85) !important;
+      box-shadow: inset 0 0 10px rgba(255, 0, 0, 0.5) !important;
+    }
+
     /* Crisp Hit & Miss Markers */
     .marker-miss {
       font-size: 1.3rem; font-weight: 900; color: rgba(255, 255, 255, 0.75);
@@ -475,8 +459,8 @@ export class BattleshipGameComponent implements OnInit, OnDestroy {
     switch (type) {
       case 'Carrier':
         return [
-          [true, true, true],
-          [true, true, true]
+          [true, true, true, false],
+          [false, true, true, true]
         ];
       case 'Cruiser':
         return [
