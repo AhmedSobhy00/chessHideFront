@@ -39,9 +39,11 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
         </div>
       </div>
 
-      <!-- Check / Checkmate status banner -->
-      <div class="status-banner" *ngIf="state && (state.isCheck || isCheckmate)" [class.checkmate]="isCheckmate">
-        {{ isCheckmate ? '♚ Checkmate!' : '♚ Check!' }}
+      <!-- Check / Checkmate status banner slot (fixed height so board never shifts) -->
+      <div class="status-banner-slot">
+        <div class="status-banner" *ngIf="state && (state.isCheck || isCheckmate)" [class.checkmate]="isCheckmate">
+          {{ isCheckmate ? '♚ Checkmate!' : '♚ Check!' }}
+        </div>
       </div>
 
       <!-- Board -->
@@ -56,6 +58,7 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
           [currentTurn]="state.currentTurn"
           [lastMove]="lastMove"
           [defeatedColor]="defeatedColor"
+          [gameResult]="state.result?.result || null"
           [disabled]="state.phase === 'Finished' || state.currentTurn !== state.yourColor"
           [squareSize]="squareSize"
           (squareClicked)="onSquareClick($event)"
@@ -147,38 +150,48 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     .game-layout {
       position: relative;
       z-index: 1;
-      display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 0.75rem; max-width: 600px; margin: 0 auto;
+      display: flex; flex-direction: column; align-items: center; justify-content: space-evenly;
+      gap: 0.25rem; padding: 0.25rem 0.5rem; max-width: 600px; margin: 0 auto;
+      height: 100dvh; max-height: 100dvh; box-sizing: border-box; overflow: hidden;
     }
-    .player-bar { width: 100%; display: flex; flex-direction: column; gap: 0.3rem; }
-    .player-info { display: flex; align-items: center; gap: 0.6rem; }
+    .player-bar { width: 100%; display: flex; flex-direction: column; gap: 0.15rem; }
+    .player-info { display: flex; align-items: center; gap: 0.5rem; }
     .player-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
+      width: 32px; height: 32px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 1rem; font-weight: 700;
+      font-size: 0.9rem; font-weight: 700;
     }
     .opponent-avatar { background: linear-gradient(135deg,#4060c0,#204080); color: #fff; }
     .your-avatar     { background: linear-gradient(135deg,#c06040,#804020); color: #fff; }
     .player-details { display: flex; flex-direction: column; flex: 1; }
     .player-details.right { align-items: flex-end; }
-    .player-name { font-weight: 600; color: #e8e8e8; font-size: 0.95rem; }
-    .player-color { font-size: 0.72rem; color: #a0a8b8; text-transform: uppercase; letter-spacing: 0.05em; }
-    .turn-indicator { font-size: 0.8rem; color: #a0a8b8; display: flex; align-items: center; gap: 0.4rem; min-width: 80px; }
+    .player-name { font-weight: 600; color: #e8e8e8; font-size: 0.88rem; }
+    .player-color { font-size: 0.68rem; color: #a0a8b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .turn-indicator { font-size: 0.76rem; color: #a0a8b8; display: flex; align-items: center; gap: 0.35rem; min-width: 70px; }
     .turn-indicator.active { color: #f0c040; }
-    .turn-pulse { width: 8px; height: 8px; border-radius: 50%; background: #f0c040; animation: pulse-anim 1s infinite; flex-shrink: 0; }
+    .turn-pulse { width: 7px; height: 7px; border-radius: 50%; background: #f0c040; animation: pulse-anim 1s infinite; flex-shrink: 0; }
     @keyframes pulse-anim { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
 
-    .captured-pieces { display: flex; flex-wrap: wrap; gap: 0.1rem; min-height: 1.2rem; }
-    .cap-piece { font-size: 1.1rem; line-height: 1; }
+    .captured-pieces { display: flex; flex-wrap: wrap; gap: 0.1rem; min-height: 1rem; }
+    .cap-piece { font-size: 0.95rem; line-height: 1; }
+
+    .status-banner-slot {
+      height: 1.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
 
     .status-banner {
       background: linear-gradient(135deg, #e05050, #901010);
-      color: #fff; padding: 0.4rem 1.5rem; border-radius: 2rem;
-      font-weight: 700; font-size: 0.95rem; animation: check-blink 0.6s infinite alternate;
+      color: #fff; padding: 0.25rem 1.2rem; border-radius: 2rem;
+      font-weight: 700; font-size: 0.85rem; animation: check-blink 0.6s infinite alternate;
       box-shadow: 0 4px 15px rgba(224,80,80,0.4);
     }
     .status-banner.checkmate {
       background: linear-gradient(135deg, #d03030, #600000);
-      font-size: 1.05rem; padding: 0.5rem 1.75rem; letter-spacing: 0.05em;
+      font-size: 0.92rem; padding: 0.3rem 1.4rem; letter-spacing: 0.05em;
       box-shadow: 0 6px 20px rgba(220,30,30,0.6);
       animation: checkmate-pulse 0.8s infinite alternate ease-in-out;
     }
@@ -190,21 +203,21 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     .draw-offer-banner {
       display: flex; align-items: center; gap: 0.75rem;
       background: rgba(60,120,240,0.15); border: 1px solid #3c78f0;
-      border-radius: 0.75rem; padding: 0.6rem 1rem; font-size: 0.9rem; color: #e8e8e8;
+      border-radius: 0.75rem; padding: 0.4rem 0.8rem; font-size: 0.85rem; color: #e8e8e8;
       width: 100%; box-sizing: border-box;
     }
     .draw-offer-banner span { flex: 1; }
     .btn-accept, .btn-decline {
-      padding: 0.35rem 0.85rem; border-radius: 0.5rem; border: none;
-      font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: inherit;
+      padding: 0.3rem 0.75rem; border-radius: 0.5rem; border: none;
+      font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit;
     }
     .btn-accept  { background: #40d060; color: #111; }
     .btn-decline { background: rgba(255,255,255,0.08); color: #e8e8e8; border: 1px solid rgba(255,255,255,0.15); }
 
-    .action-buttons { display: flex; gap: 0.75rem; width: 100%; justify-content: center; }
+    .action-buttons { display: flex; gap: 0.5rem; width: 100%; justify-content: center; }
     .btn-action {
-      padding: 0.6rem 1.4rem; border-radius: 0.75rem; border: none;
-      font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: inherit;
+      padding: 0.4rem 1rem; border-radius: 0.75rem; border: none;
+      font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit;
       transition: all 0.2s;
     }
     .btn-action:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -216,8 +229,8 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     .btn-action.draw:hover:not(:disabled)    { background: rgba(100,180,100,0.22); }
 
     .move-history {
-      width: 100%; max-height: 100px; overflow-y: auto;
-      background: rgba(0,0,0,0.2); border-radius: 0.5rem; padding: 0.4rem 0.6rem;
+      width: 100%; max-height: 42px; overflow-y: auto;
+      background: rgba(0,0,0,0.2); border-radius: 0.5rem; padding: 0.25rem 0.5rem;
       box-sizing: border-box;
     }
     .history-inner { display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; }
@@ -399,7 +412,7 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
     } else if (piece && piece.color === s.yourColor) {
       await this.gameService.getLegalMoves(alg);
     } else {
-      this.gameService['patch']?.({ selectedSquare: null, legalMoves: [] });
+      this.gameService.clearSelection();
     }
   }
 

@@ -33,7 +33,13 @@ interface Square {
   template: `
     <div class="board-wrap" [class.flipped]="flipBoard">
       <div class="board">
-        <div class="squares">
+        <div class="squares"
+          [class.backlight-checking]="isChecking"
+          [class.backlight-in-check]="isInCheckGlow"
+          [class.backlight-win]="isWinGlow"
+          [class.backlight-loss]="isLossGlow"
+          [class.backlight-draw]="isDrawGlow"
+        >
           <!-- Cloud Overlay over Top 4 Ranks in Setup Mode -->
           <div class="cloud-overlay" *ngIf="mode === 'setup'">
             <div class="cloud-bg"></div>
@@ -256,6 +262,50 @@ interface Square {
       100% { opacity: 0; transform: scale(0.3); }
     }
 
+    /* Dynamic Board Backlight Glows */
+    .squares.backlight-checking {
+      box-shadow: 0 0 35px rgba(240, 192, 64, 0.75), 0 0 70px rgba(240, 192, 64, 0.4), 0 16px 50px rgba(0,0,0,0.6) !important;
+      border-color: #f0c040 !important;
+      animation: glowPulseYellow 1.5s infinite alternate ease-in-out;
+    }
+
+    .squares.backlight-in-check {
+      box-shadow: 0 0 40px rgba(239, 68, 68, 0.85), 0 0 80px rgba(239, 68, 68, 0.5), 0 16px 50px rgba(0,0,0,0.6) !important;
+      border-color: #ef4444 !important;
+      animation: glowPulseRed 1.2s infinite alternate ease-in-out;
+    }
+
+    .squares.backlight-win {
+      box-shadow: 0 0 45px rgba(34, 197, 94, 0.85), 0 0 90px rgba(34, 197, 94, 0.5), 0 16px 50px rgba(0,0,0,0.6) !important;
+      border-color: #22c55e !important;
+      animation: glowPulseGreen 1.5s infinite alternate ease-in-out;
+    }
+
+    .squares.backlight-loss {
+      box-shadow: 0 0 45px rgba(239, 68, 68, 0.85), 0 0 90px rgba(239, 68, 68, 0.5), 0 16px 50px rgba(0,0,0,0.6) !important;
+      border-color: #ef4444 !important;
+    }
+
+    .squares.backlight-draw {
+      box-shadow: 0 0 30px rgba(148, 163, 184, 0.5), 0 16px 50px rgba(0,0,0,0.6) !important;
+      border-color: #94a3b8 !important;
+    }
+
+    @keyframes glowPulseYellow {
+      0% { box-shadow: 0 0 25px rgba(240, 192, 64, 0.6), 0 0 50px rgba(240, 192, 64, 0.3), 0 16px 50px rgba(0,0,0,0.6); }
+      100% { box-shadow: 0 0 45px rgba(240, 192, 64, 0.9), 0 0 85px rgba(240, 192, 64, 0.5), 0 16px 50px rgba(0,0,0,0.6); }
+    }
+
+    @keyframes glowPulseRed {
+      0% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.7), 0 0 60px rgba(239, 68, 68, 0.4), 0 16px 50px rgba(0,0,0,0.6); }
+      100% { box-shadow: 0 0 50px rgba(239, 68, 68, 0.95), 0 0 95px rgba(239, 68, 68, 0.6), 0 16px 50px rgba(0,0,0,0.6); }
+    }
+
+    @keyframes glowPulseGreen {
+      0% { box-shadow: 0 0 30px rgba(34, 197, 94, 0.7), 0 0 60px rgba(34, 197, 94, 0.4), 0 16px 50px rgba(0,0,0,0.6); }
+      100% { box-shadow: 0 0 55px rgba(34, 197, 94, 0.95), 0 0 100px rgba(34, 197, 94, 0.6), 0 16px 50px rgba(0,0,0,0.6); }
+    }
+
     .square {
       width: var(--sq, 72px); height: var(--sq, 72px);
       display: flex; align-items: center; justify-content: center;
@@ -426,6 +476,29 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
   @Input() disabled: boolean = false;
   @Input() squareSize: number = 72;
   @Input() defeatedColor: PieceColor | null = null;
+  @Input() gameResult: string | null = null;
+
+  get isChecking(): boolean {
+    return this.mode === 'play' && this.isCheck && this.currentTurn !== this.yourColor && !this.defeatedColor;
+  }
+
+  get isInCheckGlow(): boolean {
+    return this.mode === 'play' && this.isCheck && this.currentTurn === this.yourColor && !this.defeatedColor;
+  }
+
+  get isWinGlow(): boolean {
+    if (!this.defeatedColor) return false;
+    return this.defeatedColor !== this.yourColor;
+  }
+
+  get isLossGlow(): boolean {
+    if (!this.defeatedColor) return false;
+    return this.defeatedColor === this.yourColor;
+  }
+
+  get isDrawGlow(): boolean {
+    return this.gameResult === 'Draw';
+  }
 
   @Output() squareClicked = new EventEmitter<{ row: number; col: number; algebraic: string }>();
   @Output() pieceDragged  = new EventEmitter<{ fromRow: number; fromCol: number; toRow: number; toCol: number }>();
@@ -582,17 +655,18 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
+    const overhead = vw < 480 ? 175 : 195;
     const maxFromWidth = Math.floor((vw - 8) / 8);
-    const maxFromHeight = Math.floor((vh - 160) / 8);
+    const maxFromHeight = Math.floor((vh - overhead) / 8);
     const calculated = Math.min(maxFromWidth, maxFromHeight);
 
     let size = this.squareSize;
     if (vw < 480) {
-      size = Math.max(36, Math.min(58, calculated));
+      size = Math.max(30, Math.min(54, calculated));
     } else if (vw < 768) {
-      size = Math.max(48, Math.min(72, calculated));
+      size = Math.max(42, Math.min(68, calculated));
     } else {
-      size = Math.max(64, Math.min(92, calculated));
+      size = Math.max(54, Math.min(84, calculated));
     }
     this.currentSquareSize = size;
     document.documentElement.style.setProperty('--sq', `${size}px`);
@@ -686,6 +760,10 @@ export class ChessBoardComponent implements OnChanges, OnDestroy {
       const selKey = `${selPos.row}_${selPos.col}`;
       const targetKey = `${sq.row}_${sq.col}`;
       this.triggerDenial([selKey, targetKey]);
+      this.squareClicked.emit({
+        row: sq.row, col: sq.col,
+        algebraic: alg
+      });
       return;
     }
 

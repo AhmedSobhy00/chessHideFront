@@ -79,25 +79,29 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     </div>
   `,
   styles: [`
-    .setup-container { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; padding: 1rem; flex: 1; }
-    .setup-header { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
-    .phase-badge { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; color: #40a0f0; text-transform: uppercase; }
-    .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: #40a0f0; animation: blink 1.2s infinite; }
+    .setup-container {
+      display: flex; flex-direction: column; align-items: center; justify-content: space-evenly;
+      gap: 0.3rem; padding: 0.35rem 0.5rem; height: 100dvh; max-height: 100dvh;
+      box-sizing: border-box; overflow: hidden;
+    }
+    .setup-header { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+    .phase-badge { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; color: #40a0f0; text-transform: uppercase; }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #40a0f0; animation: blink 1.2s infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-    .vs-info { display: flex; gap: 0.75rem; align-items: center; color: #a0a8b8; }
+    .vs-info { display: flex; gap: 0.6rem; align-items: center; color: #a0a8b8; font-size: 0.85rem; }
     .vs-info .you,.vs-info .opp { font-weight: 600; color: #e8e8e8; }
-    .vs-info .vs { font-size: 0.8rem; }
+    .vs-info .vs { font-size: 0.75rem; }
 
-    .timer-section { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
-    .timer-ring { position: relative; width: 80px; height: 80px; color: #40a0f0; }
+    .timer-section { display: flex; align-items: center; gap: 0.5rem; }
+    .timer-ring { position: relative; width: 48px; height: 48px; color: #40a0f0; }
     .timer-ring.urgent { color: #e05050; }
     .timer-ring svg { width: 100%; height: 100%; }
-    .timer-value { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 800; color: #e8e8e8; font-variant-numeric: tabular-nums; }
+    .timer-value { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.92rem; font-weight: 800; color: #e8e8e8; font-variant-numeric: tabular-nums; }
     .timer-section.urgent .timer-ring { color: #e05050; animation: shake 0.3s infinite; }
     @keyframes shake { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-1deg)} 75%{transform:rotate(1deg)} }
-    .timer-label { font-size: 0.72rem; color: #a0a8b8; text-transform: uppercase; letter-spacing: 0.08em; }
+    .timer-label { font-size: 0.7rem; color: #a0a8b8; text-transform: uppercase; letter-spacing: 0.08em; }
 
-    .instruction { font-size: 0.9rem; color: #a0a8b8; text-align: center; max-width: 380px; }
+    .instruction { font-size: 0.82rem; color: #a0a8b8; text-align: center; max-width: 380px; }
     .instruction.locked { color: #40a0f0; }
     .opp-ready { color: #60d060; }
 
@@ -105,33 +109,33 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
 
     .controls { display: flex; justify-content: center; }
     .btn-ready {
-      display: flex; align-items: center; gap: 0.6rem;
-      padding: 0.85rem 3rem; border-radius: 2rem;
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.55rem 2.2rem; border-radius: 2rem;
       background: linear-gradient(135deg, #f0c040, #d4880a);
-      color: #1a1a2e; font-size: 1.1rem; font-weight: 800; border: none;
+      color: #1a1a2e; font-size: 0.95rem; font-weight: 800; border: none;
       cursor: pointer; letter-spacing: 0.08em; transition: all 0.2s;
       box-shadow: 0 4px 20px rgba(240,192,64,0.3);
     }
     .btn-ready:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(240,192,64,0.45); }
-    .check-icon { font-size: 1.2rem; }
-    .waiting-pulse { display: flex; align-items: center; gap: 0.75rem; color: #a0a8b8; position: relative; }
+    .check-icon { font-size: 1.1rem; }
+    .waiting-pulse { display: flex; align-items: center; gap: 0.75rem; color: #a0a8b8; position: relative; font-size: 0.85rem; }
     .pulse-ring {
-      width: 16px; height: 16px; border-radius: 50%;
+      width: 14px; height: 14px; border-radius: 50%;
       border: 2px solid #40a0f0; position: absolute;
       animation: pulsate 1.5s ease-out infinite;
     }
-    .pulse-core { width: 10px; height: 10px; border-radius: 50%; background: #40a0f0; margin-left: 3px; }
+    .pulse-core { width: 8px; height: 8px; border-radius: 50%; background: #40a0f0; margin-left: 3px; }
     @keyframes pulsate { 0%{transform:scale(1);opacity:1} 100%{transform:scale(2.5);opacity:0} }
 
     @media (max-width: 480px) {
-      .setup-container { padding: 0.5rem; gap: 0.6rem; }
-      .phase-badge { font-size: 0.68rem; }
-      .vs-info { font-size: 0.85rem; }
-      .timer-ring { width: 56px; height: 56px; }
-      .timer-value { font-size: 0.92rem; }
-      .timer-label { font-size: 0.65rem; }
-      .instruction { font-size: 0.78rem; max-width: 320px; }
-      .btn-ready { padding: 0.6rem 2rem; font-size: 0.95rem; }
+      .setup-container { padding: 0.25rem 0.4rem; gap: 0.25rem; }
+      .phase-badge { font-size: 0.65rem; }
+      .vs-info { font-size: 0.8rem; }
+      .timer-ring { width: 42px; height: 42px; }
+      .timer-value { font-size: 0.82rem; }
+      .timer-label { font-size: 0.62rem; }
+      .instruction { font-size: 0.75rem; max-width: 320px; }
+      .btn-ready { padding: 0.45rem 1.6rem; font-size: 0.88rem; }
     }
   `]
 })

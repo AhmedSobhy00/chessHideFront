@@ -89,8 +89,8 @@ import { SoundService } from '../../core/services/sound.service';
         </div>
       </ng-container>
 
-      <!-- Creator Footer -->
-      <footer class="site-footer">
+      <!-- Creator Footer (Shown only on lobby / waiting screens) -->
+      <footer class="site-footer" *ngIf="!state || state.phase === 'WaitingForPlayers'">
         <div class="footer-content">
           <span class="created-by">Created by <a href="https://ahmedsobhi.vercel.app/" target="_blank" rel="noopener">Ahmed Sobhi</a></span>
           <div class="footer-links">
@@ -111,7 +111,7 @@ import { SoundService } from '../../core/services/sound.service';
     </div>
   `,
   styles: [`
-    .shell { min-height: 100vh; display: flex; flex-direction: column; position: relative; }
+    .shell { height: 100dvh; max-height: 100dvh; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; position: relative; }
     .error-toast {
       position: fixed; top: 1rem; left: 50%; transform: translateX(-50%);
       background: #c02030; color: #fff; padding: 0.6rem 1.5rem;

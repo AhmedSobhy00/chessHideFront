@@ -380,6 +380,10 @@ export class GameService implements OnDestroy {
     return raw ? JSON.parse(raw) : null;
   }
 
+  clearSelection(): void {
+    this.patch({ selectedSquare: null, legalMoves: [] });
+  }
+
   resetState(): void {
     sessionStorage.removeItem(this.PLAYER_KEY);
     this._state$.next(createEmptyGameState());
