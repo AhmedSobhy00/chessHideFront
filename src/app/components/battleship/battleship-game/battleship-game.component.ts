@@ -152,6 +152,11 @@ interface FleetStatusItem {
                   *ngFor="let c of [0,1,2,3,4,5,6,7,8,9]"
                   class="grid-cell fleet-cell"
                   [class.has-ship]="hasYourShipAt(r, c)"
+                  [class.ship-carrier]="getShipTypeAt(r, c) === 'Carrier'"
+                  [class.ship-battleship]="getShipTypeAt(r, c) === 'Battleship'"
+                  [class.ship-cruiser]="getShipTypeAt(r, c) === 'Cruiser'"
+                  [class.ship-submarine]="getShipTypeAt(r, c) === 'Submarine'"
+                  [class.ship-destroyer]="getShipTypeAt(r, c) === 'Destroyer'"
                   [class.cell-hit]="state.yourGrid[r][c] === 'Hit'"
                   [class.cell-miss]="state.yourGrid[r][c] === 'Miss'"
                   [class.cell-sunk]="state.yourGrid[r][c] === 'Sunk'"
@@ -277,14 +282,14 @@ interface FleetStatusItem {
     .turn-banner .enemy-text { color: #ffaa00; }
     .shot-feedback-text { color: #ffe600; text-shadow: 0 0 8px rgba(255,230,0,0.6); }
 
-    /* Ocean Grid Container (Mobile responsive scaling) */
-    .ocean-wrapper { display: flex; justify-content: center; width: 100%; max-width: 440px; }
+    /* Ocean Grid Container (Mobile & Desktop Responsive Scaling) */
+    .ocean-wrapper { display: flex; justify-content: center; width: 100%; max-width: 650px; }
     .ocean-grid-container { display: flex; flex-direction: column; align-items: flex-end; }
     .col-labels { display: flex; margin-left: 22px; }
-    .col-labels span { width: clamp(26px, 7.8dvw, 36px); text-align: center; font-size: 0.72rem; font-weight: 800; color: #708098; }
+    .col-labels span { width: clamp(27px, 8.2vw, 54px); text-align: center; font-size: 0.75rem; font-weight: 800; color: #708098; }
     .grid-body { display: flex; }
     .row-labels { display: flex; flex-direction: column; justify-content: space-around; width: 22px; text-align: right; padding-right: 4px; }
-    .row-labels span { font-size: 0.72rem; font-weight: 800; color: #708098; height: clamp(26px, 7.8dvw, 36px); line-height: clamp(26px, 7.8dvw, 36px); }
+    .row-labels span { font-size: 0.75rem; font-weight: 800; color: #708098; height: clamp(27px, 8.2vw, 54px); line-height: clamp(27px, 8.2vw, 54px); }
 
     .board-grid {
       border: 2px solid rgba(0,240,255,0.35); border-radius: 0.65rem; overflow: hidden;
@@ -293,25 +298,67 @@ interface FleetStatusItem {
     }
     .grid-row { display: flex; }
     .grid-cell {
-      width: clamp(26px, 7.8dvw, 36px); height: clamp(26px, 7.8dvw, 36px);
+      width: clamp(27px, 8.2vw, 54px); height: clamp(27px, 8.2vw, 54px);
       border: 1px solid rgba(0,240,255,0.12);
-      display: flex; align-items: center; justify-content: center; position: relative;
+      display: flex; align-items: center; justify-content: center; position: relative; box-sizing: border-box;
+    }
+
+    @media (min-width: 768px) {
+      .tactical-hud { max-width: 620px; padding: 0.75rem 1.25rem; }
+      .ocean-wrapper { max-width: 620px; }
+      .turn-banner { max-width: 620px; font-size: 0.95rem; }
+      .switch-tab { padding: 0.5rem 1.25rem; font-size: 0.88rem; }
+      .ship-status-card { padding: 0.35rem 0.6rem; }
+      .mini-shape-cell { width: 9px; height: 9px; }
+    }
+
+    @media (max-width: 767px) {
+      .tactical-hud { max-width: 100%; padding: 0.4rem 0.6rem; }
+      .fleet-diagrams { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; gap: 0.25rem; }
+      .ship-status-card { min-width: 48px; }
+      .mini-shape-cell { width: 6px; height: 6px; }
     }
     .radar-cell.clickable { cursor: crosshair; }
     .radar-cell.clickable:hover { background: rgba(0,240,255,0.25); border-color: #00f0ff; }
 
-    /* Metallic Colored Square Blocks for Fleet Grid (No Emojis, Always Visible) */
-    .fleet-cell.has-ship {
-      background: linear-gradient(135deg, rgba(0, 240, 255, 0.5) 0%, rgba(0, 130, 230, 0.4) 100%);
-      border: 1px solid rgba(0, 240, 255, 0.75);
-      box-shadow: inset 0 0 8px rgba(0, 240, 255, 0.45);
+    /* Distinct Metallic Styling & Outer Hull Borders for Individual Ship Types */
+    .ship-carrier {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.6) 0%, rgba(0, 140, 220, 0.45) 100%) !important;
+      border: 1.5px solid #00f0ff !important;
+      box-shadow: inset 0 0 8px rgba(0, 240, 255, 0.6), 0 0 4px rgba(0, 240, 255, 0.4) !important;
+      border-radius: 3px;
+    }
+    .ship-battleship {
+      background: linear-gradient(135deg, rgba(0, 140, 255, 0.6) 0%, rgba(0, 80, 190, 0.45) 100%) !important;
+      border: 1.5px solid #0088ff !important;
+      box-shadow: inset 0 0 8px rgba(0, 140, 255, 0.6), 0 0 4px rgba(0, 140, 255, 0.4) !important;
+      border-radius: 3px;
+    }
+    .ship-cruiser {
+      background: linear-gradient(135deg, rgba(0, 255, 170, 0.6) 0%, rgba(0, 180, 120, 0.45) 100%) !important;
+      border: 1.5px solid #00ffaa !important;
+      box-shadow: inset 0 0 8px rgba(0, 255, 170, 0.6), 0 0 4px rgba(0, 255, 170, 0.4) !important;
+      border-radius: 3px;
+    }
+    .ship-submarine {
+      background: linear-gradient(135deg, rgba(160, 100, 255, 0.6) 0%, rgba(100, 50, 200, 0.45) 100%) !important;
+      border: 1.5px solid #a064ff !important;
+      box-shadow: inset 0 0 8px rgba(160, 100, 255, 0.6), 0 0 4px rgba(160, 100, 255, 0.4) !important;
+      border-radius: 3px;
+    }
+    .ship-destroyer {
+      background: linear-gradient(135deg, rgba(255, 170, 0, 0.6) 0%, rgba(200, 120, 0, 0.45) 100%) !important;
+      border: 1.5px solid #ffaa00 !important;
+      box-shadow: inset 0 0 8px rgba(255, 170, 0, 0.6), 0 0 4px rgba(255, 170, 0, 0.4) !important;
+      border-radius: 3px;
     }
 
     /* Metallic Sunk Ship Blocks for Radar Grid when Enemy Ship is Destroyed */
     .radar-cell.cell-sunk {
-      background: linear-gradient(135deg, rgba(255, 50, 50, 0.5) 0%, rgba(180, 20, 20, 0.4) 100%) !important;
-      border: 1px solid rgba(255, 60, 60, 0.85) !important;
-      box-shadow: inset 0 0 10px rgba(255, 0, 0, 0.5) !important;
+      background: linear-gradient(135deg, rgba(255, 50, 50, 0.55) 0%, rgba(180, 20, 20, 0.45) 100%) !important;
+      border: 1.5px solid #ff3333 !important;
+      box-shadow: inset 0 0 10px rgba(255, 0, 0, 0.6), 0 0 6px rgba(255, 0, 0, 0.4) !important;
+      border-radius: 3px;
     }
 
     /* Crisp Hit & Miss Markers */
@@ -484,14 +531,13 @@ export class BattleshipGameComponent implements OnInit, OnDestroy {
   }
 
   hasYourShipAt(r: number, c: number): boolean {
-    if (!this.state) return false;
-    if (this.state.yourGrid && (this.state.yourGrid[r][c] === 'Ship' || this.state.yourGrid[r][c] === 'Hit' || this.state.yourGrid[r][c] === 'Sunk')) {
-      return true;
-    }
-    if (this.state.yourShips && this.state.yourShips.length > 0) {
-      return this.state.yourShips.some(s => s.occupiedCells.some(cell => cell.row === r && cell.col === c));
-    }
-    return false;
+    return this.getShipTypeAt(r, c) !== null || (!!this.state?.yourGrid && (this.state.yourGrid[r][c] === 'Ship' || this.state.yourGrid[r][c] === 'Hit' || this.state.yourGrid[r][c] === 'Sunk'));
+  }
+
+  getShipTypeAt(r: number, c: number): ShipType | null {
+    if (!this.state || !this.state.yourShips) return null;
+    const ship = this.state.yourShips.find(s => s.occupiedCells.some(cell => cell.row === r && cell.col === c));
+    return ship ? ship.type : null;
   }
 
   async fireShot(row: number, col: number): Promise<void> {

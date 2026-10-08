@@ -94,6 +94,11 @@ interface ShipConfig {
                   *ngFor="let c of [0,1,2,3,4,5,6,7,8,9]"
                   class="grid-cell"
                   [class.has-ship]="hasShipAt(r, c)"
+                  [class.ship-carrier]="getShipTypeAt(r, c) === 'Carrier'"
+                  [class.ship-battleship]="getShipTypeAt(r, c) === 'Battleship'"
+                  [class.ship-cruiser]="getShipTypeAt(r, c) === 'Cruiser'"
+                  [class.ship-submarine]="getShipTypeAt(r, c) === 'Submarine'"
+                  [class.ship-destroyer]="getShipTypeAt(r, c) === 'Destroyer'"
                   [class.preview-valid]="isPreviewCell(r, c) && isPreviewValid"
                   [class.preview-invalid]="isPreviewCell(r, c) && !isPreviewValid"
                   (mouseenter)="onCellHover(r, c)"
@@ -191,21 +196,66 @@ interface ShipConfig {
     .btn-action.ready:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,240,255,0.5); }
     .btn-action:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 
-    /* Grid Styling Responsive for Mobile */
+    /* Grid Styling Responsive for Mobile & Desktop */
     .grid-wrapper { display: flex; flex-direction: column; align-items: flex-end; }
     .col-labels { display: flex; margin-left: 22px; }
-    .col-labels span { width: clamp(26px, 7.5dvw, 36px); text-align: center; font-size: 0.72rem; font-weight: 700; color: #708098; }
+    .col-labels span { width: clamp(27px, 8.2vw, 54px); text-align: center; font-size: 0.75rem; font-weight: 700; color: #708098; }
     .grid-body { display: flex; }
     .row-labels { display: flex; flex-direction: column; justify-content: space-around; width: 22px; text-align: right; padding-right: 4px; }
-    .row-labels span { font-size: 0.72rem; font-weight: 700; color: #708098; height: clamp(26px, 7.5dvw, 36px); line-height: clamp(26px, 7.5dvw, 36px); }
+    .row-labels span { font-size: 0.75rem; font-weight: 700; color: #708098; height: clamp(27px, 8.2vw, 54px); line-height: clamp(27px, 8.2vw, 54px); }
 
     .board-grid { border: 2px solid rgba(0,240,255,0.3); border-radius: 0.5rem; overflow: hidden; background: rgba(5,12,30,0.9); }
     .grid-row { display: flex; }
     .grid-cell {
-      width: clamp(26px, 7.5dvw, 36px); height: clamp(26px, 7.5dvw, 36px);
+      width: clamp(27px, 8.2vw, 54px); height: clamp(27px, 8.2vw, 54px);
       border: 1px solid rgba(0,240,255,0.1);
       display: flex; align-items: center; justify-content: center; cursor: pointer;
-      position: relative; transition: background 0.15s;
+      position: relative; transition: background 0.15s; box-sizing: border-box;
+    }
+    .grid-cell:hover { background: rgba(0,240,255,0.15); }
+
+    @media (min-width: 768px) {
+      .setup-layout { flex-direction: row; align-items: flex-start; max-width: 980px; gap: 2.5rem; }
+      .setup-panel { width: 300px; }
+    }
+
+    @media (max-width: 767px) {
+      .setup-layout { flex-direction: column; align-items: center; width: 100%; gap: 0.85rem; }
+      .setup-panel { width: 100%; max-width: 380px; padding: 0.65rem; }
+      .ships-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.35rem; }
+      .ship-card { padding: 0.35rem 0.5rem; }
+    }
+
+    /* Distinct Metallic Styling & Outer Hull Borders for Individual Ship Types */
+    .ship-carrier {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.6) 0%, rgba(0, 140, 220, 0.45) 100%) !important;
+      border: 1.5px solid #00f0ff !important;
+      box-shadow: inset 0 0 8px rgba(0, 240, 255, 0.6), 0 0 4px rgba(0, 240, 255, 0.4) !important;
+      border-radius: 3px;
+    }
+    .ship-battleship {
+      background: linear-gradient(135deg, rgba(0, 140, 255, 0.6) 0%, rgba(0, 80, 190, 0.45) 100%) !important;
+      border: 1.5px solid #0088ff !important;
+      box-shadow: inset 0 0 8px rgba(0, 140, 255, 0.6), 0 0 4px rgba(0, 140, 255, 0.4) !important;
+      border-radius: 3px;
+    }
+    .ship-cruiser {
+      background: linear-gradient(135deg, rgba(0, 255, 170, 0.6) 0%, rgba(0, 180, 120, 0.45) 100%) !important;
+      border: 1.5px solid #00ffaa !important;
+      box-shadow: inset 0 0 8px rgba(0, 255, 170, 0.6), 0 0 4px rgba(0, 255, 170, 0.4) !important;
+      border-radius: 3px;
+    }
+    .ship-submarine {
+      background: linear-gradient(135deg, rgba(160, 100, 255, 0.6) 0%, rgba(100, 50, 200, 0.45) 100%) !important;
+      border: 1.5px solid #a064ff !important;
+      box-shadow: inset 0 0 8px rgba(160, 100, 255, 0.6), 0 0 4px rgba(160, 100, 255, 0.4) !important;
+      border-radius: 3px;
+    }
+    .ship-destroyer {
+      background: linear-gradient(135deg, rgba(255, 170, 0, 0.6) 0%, rgba(200, 120, 0, 0.45) 100%) !important;
+      border: 1.5px solid #ffaa00 !important;
+      box-shadow: inset 0 0 8px rgba(255, 170, 0, 0.6), 0 0 4px rgba(255, 170, 0, 0.4) !important;
+      border-radius: 3px;
     }
     .grid-cell:hover { background: rgba(0,240,255,0.15); }
     .grid-cell.has-ship {
@@ -375,13 +425,17 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
   }
 
   hasShipAt(row: number, col: number): boolean {
-    for (const dto of this.placedShipsMap.values()) {
+    return this.getShipTypeAt(row, col) !== null;
+  }
+
+  getShipTypeAt(row: number, col: number): ShipType | null {
+    for (const [shipType, dto] of this.placedShipsMap.entries()) {
       const rels = getShipRelativeCells(dto.Type, dto.IsVertical);
       if (rels.some(r => dto.StartRow + r.row === row && dto.StartCol + r.col === col)) {
-        return true;
+        return shipType;
       }
     }
-    return false;
+    return null;
   }
 
   validatePreview(): void {
