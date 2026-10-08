@@ -31,12 +31,14 @@ import { GameState } from '../../models/game.model';
           <h2>Game Code</h2>
           <div class="game-id-box">
             <span class="game-id">{{ state?.gameId }}</span>
-            <button class="copy-btn" (click)="copyId()" [title]="'Copy Code'">
-              {{ copied ? '✓' : '⎘' }} Code
-            </button>
-            <button class="copy-btn" (click)="copyLink()" [title]="'Copy Invite Link'">
-              {{ copiedLink ? '✓' : '🔗' }} Link
-            </button>
+            <div class="copy-actions">
+              <button class="copy-btn" [class.copied]="copied" (click)="copyId()" [title]="'Copy Code'">
+                {{ copied ? '✓ Code Copied' : '⎘ Copy Code' }}
+              </button>
+              <button class="copy-btn" [class.copied]="copiedLink" (click)="copyLink()" [title]="'Copy Invite Link'">
+                {{ copiedLink ? '✓ Link Copied' : '🔗 Copy Link' }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -155,17 +157,18 @@ import { GameState } from '../../models/game.model';
     h2 { margin: 0 0 0.5rem; color: #a0a8b8; font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 
     .game-id-box {
-      display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;
       background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 0.75rem; padding: 0.5rem 0.75rem;
+      border-radius: 0.85rem; padding: 0.65rem 0.75rem;
     }
-    .game-id { font-size: 1.8rem; font-weight: 800; color: #f0c040; letter-spacing: 0.18em; font-family: monospace; }
+    .game-id { font-size: 1.85rem; font-weight: 800; color: #f0c040; letter-spacing: 0.18em; font-family: monospace; }
+    .copy-actions { display: flex; gap: 0.5rem; width: 100%; justify-content: center; }
     .copy-btn {
-      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 0.45rem; color: #e8e8e8; padding: 0.4rem 0.65rem;
-      font-size: 0.76rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s;
+      flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 0.5rem; color: #e8e8e8; padding: 0.45rem 0.65rem;
+      font-size: 0.78rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; text-align: center;
     }
-    .copy-btn.copied { background: rgba(60,200,60,0.18); border-color: #40d060; color: #60e080; }
+    .copy-btn.copied { background: rgba(60,200,60,0.2); border-color: #40d060; color: #60e080; }
     .copy-btn:hover { background: rgba(255,255,255,0.14); }
 
     .players-section { display: flex; flex-direction: column; gap: 0.45rem; }
