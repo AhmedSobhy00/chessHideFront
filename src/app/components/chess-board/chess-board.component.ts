@@ -32,6 +32,14 @@ interface Square {
     <div class="board-wrap" [class.flipped]="flipBoard">
       <div class="board">
         <div class="squares">
+          <!-- Fog Overlay over Top 4 Ranks in Setup Mode -->
+          <div class="fog-overlay" *ngIf="mode === 'setup'">
+            <div class="fog-clouds"></div>
+            <div class="fog-badge">
+              <span class="fog-icon">🌫️</span>
+              <span class="fog-text">Opponent Zone (Hidden)</span>
+            </div>
+          </div>
           <ng-container *ngFor="let row of boardRows; trackBy: trackByRow">
             <div
               *ngFor="let sq of row; trackBy: trackBySq"
@@ -128,6 +136,7 @@ interface Square {
       max-width: 100vw;
     }
     .squares {
+      position: relative;
       display: grid;
       grid-template-columns: repeat(8, var(--sq, 72px));
       grid-template-rows: repeat(8, var(--sq, 72px));
@@ -135,6 +144,75 @@ interface Square {
       border-radius: 8px;
       overflow: hidden;
       box-shadow: 0 16px 50px rgba(0,0,0,0.5);
+    }
+
+    /* Fog Overlay in Setup Mode covering the top 4 ranks */
+    .fog-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, 
+        rgba(15, 23, 42, 0.94) 0%, 
+        rgba(30, 41, 59, 0.88) 65%, 
+        rgba(15, 23, 42, 0.72) 100%);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 2px dashed rgba(96, 165, 250, 0.5);
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+
+    .fog-clouds {
+      position: absolute;
+      inset: -50%;
+      background: 
+        radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 70% 60%, rgba(147, 197, 253, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 45%);
+      filter: blur(12px);
+      animation: fogDrift 16s linear infinite;
+      pointer-events: none;
+    }
+
+    .fog-badge {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid rgba(147, 197, 253, 0.35);
+      border-radius: 20px;
+      color: #93c5fd;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      backdrop-filter: blur(4px);
+    }
+
+    .fog-icon {
+      font-size: 1.1rem;
+      animation: floatCloud 2.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes fogDrift {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.1); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+
+    @keyframes floatCloud {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-3px); }
     }
 
     .square {
