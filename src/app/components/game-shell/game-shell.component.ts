@@ -23,7 +23,7 @@ import { SoundService } from '../../core/services/sound.service';
     GameResultComponent,
   ],
   template: `
-    <div class="shell">
+    <div class="shell" [class.in-game]="state && state.phase !== 'WaitingForPlayers'">
       <!-- Error toast -->
       <div class="error-toast" *ngIf="errorMsg" (click)="dismissError()">
         ⚠ {{ errorMsg }}
@@ -111,7 +111,8 @@ import { SoundService } from '../../core/services/sound.service';
     </div>
   `,
   styles: [`
-    .shell { height: 100dvh; max-height: 100dvh; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; position: relative; }
+    .shell { min-height: 100dvh; display: flex; flex-direction: column; justify-content: space-between; overflow-y: auto; position: relative; }
+    .shell.in-game { height: 100dvh; max-height: 100dvh; overflow: hidden; }
     .error-toast {
       position: fixed; top: 1rem; left: 50%; transform: translateX(-50%);
       background: #c02030; color: #fff; padding: 0.6rem 1.5rem;

@@ -19,103 +19,189 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
 
     <div class="game-layout">
 
-      <!-- Opponent area -->
-      <div class="player-bar opponent-bar">
-        <div class="player-info" *ngIf="state">
-          <div class="player-avatar opponent-avatar">{{ initialChar(state.opponentName) }}</div>
-          <div class="player-details">
-            <span class="player-name">{{ state.opponentName || 'Opponent' }}</span>
-            <span class="player-color">{{ opponentColor }}</span>
+      <!-- LEFT PANEL (Desktop: Move History & Captured Pieces) -->
+      <div class="game-panel left-panel">
+        <!-- Move History Card -->
+        <div class="panel-card history-card" *ngIf="state">
+          <div class="card-header">
+            <span class="card-title">📜 Move History</span>
+            <span class="move-count" *ngIf="state.moveHistory">{{ state.moveHistory.length }} moves</span>
           </div>
-          <div class="turn-indicator" [class.active]="state.phase !== 'Finished' && state.currentTurn !== state.yourColor">
-            <div class="turn-pulse" *ngIf="state.phase !== 'Finished' && state.currentTurn !== state.yourColor"></div>
-            {{ (state.phase !== 'Finished' && state.currentTurn !== state.yourColor) ? 'Thinking…' : '' }}
+          <div class="move-history-scroll" *ngIf="state.moveHistory && state.moveHistory.length > 0; else noMoves">
+            <div class="history-grid">
+              <div *ngFor="let mv of pairedMoves; let i = index" class="move-row">
+                <span class="move-num">{{ i + 1 }}.</span>
+                <span class="move white">{{ mv[0] }}</span>
+                <span class="move black" *ngIf="mv[1]">{{ mv[1] }}</span>
+              </div>
+            </div>
+          </div>
+          <ng-template #noMoves>
+            <div class="no-moves-msg">Match in progress…</div>
+          </ng-template>
+        </div>
+
+        <!-- Captured Pieces Summary (Desktop view) -->
+        <div class="panel-card captured-card desktop-only" *ngIf="state">
+          <div class="card-header">
+            <span class="card-title">⚔️ Captured Pieces</span>
+          </div>
+          <div class="cap-group">
+            <span class="cap-label">You captured:</span>
+            <div class="cap-icons">
+              <span *ngFor="let p of piecesCapturedByYou" class="cap-piece">
+                {{ miniPiece(p.type, opponentColor) }}
+              </span>
+              <span *ngIf="piecesCapturedByYou.length === 0" class="none-text">None yet</span>
+            </div>
+          </div>
+          <div class="cap-group">
+            <span class="cap-label">Opponent captured:</span>
+            <div class="cap-icons">
+              <span *ngFor="let p of piecesCapturedByOpponent" class="cap-piece">
+                {{ miniPiece(p.type, state.yourColor) }}
+              </span>
+              <span *ngIf="piecesCapturedByOpponent.length === 0" class="none-text">None yet</span>
+            </div>
           </div>
         </div>
-        <div class="captured-pieces" *ngIf="state">
-          <span *ngFor="let p of piecesCapturedByOpponent" class="cap-piece">
-            {{ miniPiece(p.type, state.yourColor) }}
-          </span>
-        </div>
       </div>
 
-      <!-- Check / Checkmate status banner slot (fixed height so board never shifts) -->
-      <div class="status-banner-slot">
-        <div class="status-banner" *ngIf="state && (state.isCheck || isCheckmate)" [class.checkmate]="isCheckmate">
-          {{ isCheckmate ? '♚ Checkmate!' : '♚ Check!' }}
-        </div>
-      </div>
-
-      <!-- Board -->
-      <div class="board-area" *ngIf="state">
-        <app-chess-board
-          [pieces]="state.allPieces || []"
-          [yourColor]="state.yourColor"
-          mode="play"
-          [selectedSquare]="state.selectedSquare"
-          [legalMoves]="state.legalMoves"
-          [isCheck]="state.isCheck"
-          [currentTurn]="state.currentTurn"
-          [lastMove]="lastMove"
-          [defeatedColor]="defeatedColor"
-          [gameResult]="state.result?.result || null"
-          [disabled]="state.phase === 'Finished' || state.currentTurn !== state.yourColor"
-          [squareSize]="squareSize"
-          (squareClicked)="onSquareClick($event)"
-          (pieceDragged)="onPieceDragged($event)"
-          (promotionChosen)="onPromotionChosen($event)"
-        ></app-chess-board>
-      </div>
-
-      <!-- Your area -->
-      <div class="player-bar your-bar" *ngIf="state">
-        <div class="captured-pieces">
-          <span *ngFor="let p of piecesCapturedByYou" class="cap-piece">
-            {{ miniPiece(p.type, opponentColor) }}
-          </span>
-        </div>
-        <div class="player-info">
-          <div class="turn-indicator" [class.active]="state.phase !== 'Finished' && state.currentTurn === state.yourColor">
-            <div class="turn-pulse" *ngIf="state.phase !== 'Finished' && state.currentTurn === state.yourColor"></div>
-            {{ (state.phase !== 'Finished' && state.currentTurn === state.yourColor) ? 'Your turn' : '' }}
+      <!-- CENTER PANEL (Board & Status Banner) -->
+      <div class="game-panel center-panel">
+        
+        <!-- Opponent Bar (Mobile layout top bar) -->
+        <div class="player-bar opponent-bar mobile-only" *ngIf="state">
+          <div class="player-info">
+            <div class="player-avatar opponent-avatar">{{ initialChar(state.opponentName) }}</div>
+            <div class="player-details">
+              <span class="player-name">{{ state.opponentName || 'Opponent' }}</span>
+              <span class="player-color">{{ opponentColor }}</span>
+            </div>
+            <div class="turn-indicator" [class.active]="state.phase !== 'Finished' && state.currentTurn !== state.yourColor">
+              <div class="turn-pulse" *ngIf="state.phase !== 'Finished' && state.currentTurn !== state.yourColor"></div>
+              {{ (state.phase !== 'Finished' && state.currentTurn !== state.yourColor) ? 'Thinking…' : '' }}
+            </div>
           </div>
-          <div class="player-details right">
-            <span class="player-name">{{ state.yourName }} (You)</span>
-            <span class="player-color">{{ state.yourColor }}</span>
+          <div class="captured-pieces">
+            <span *ngFor="let p of piecesCapturedByOpponent" class="cap-piece">
+              {{ miniPiece(p.type, state.yourColor) }}
+            </span>
           </div>
-          <div class="player-avatar your-avatar">{{ initialChar(state.yourName) }}</div>
+        </div>
+
+        <!-- Check / Checkmate status banner slot (fixed height) -->
+        <div class="status-banner-slot">
+          <div class="status-banner" *ngIf="state && (state.isCheck || isCheckmate)" [class.checkmate]="isCheckmate">
+            {{ isCheckmate ? '♚ Checkmate!' : '♚ Check!' }}
+          </div>
+        </div>
+
+        <!-- Board -->
+        <div class="board-area" *ngIf="state">
+          <app-chess-board
+            [pieces]="state.allPieces || []"
+            [yourColor]="state.yourColor"
+            mode="play"
+            [selectedSquare]="state.selectedSquare"
+            [legalMoves]="state.legalMoves"
+            [isCheck]="state.isCheck"
+            [currentTurn]="state.currentTurn"
+            [lastMove]="lastMove"
+            [defeatedColor]="defeatedColor"
+            [gameResult]="state.result?.result || null"
+            [disabled]="state.phase === 'Finished' || state.currentTurn !== state.yourColor"
+            [squareSize]="squareSize"
+            (squareClicked)="onSquareClick($event)"
+            (pieceDragged)="onPieceDragged($event)"
+            (promotionChosen)="onPromotionChosen($event)"
+          ></app-chess-board>
+        </div>
+
+        <!-- Your Bar (Mobile layout bottom bar) -->
+        <div class="player-bar your-bar mobile-only" *ngIf="state">
+          <div class="captured-pieces">
+            <span *ngFor="let p of piecesCapturedByYou" class="cap-piece">
+              {{ miniPiece(p.type, opponentColor) }}
+            </span>
+          </div>
+          <div class="player-info">
+            <div class="turn-indicator" [class.active]="state.phase !== 'Finished' && state.currentTurn === state.yourColor">
+              <div class="turn-pulse" *ngIf="state.phase !== 'Finished' && state.currentTurn === state.yourColor"></div>
+              {{ (state.phase !== 'Finished' && state.currentTurn === state.yourColor) ? 'Your turn' : '' }}
+            </div>
+            <div class="player-details right">
+              <span class="player-name">{{ state.yourName }} (You)</span>
+              <span class="player-color">{{ state.yourColor }}</span>
+            </div>
+            <div class="player-avatar your-avatar">{{ initialChar(state.yourName) }}</div>
+          </div>
         </div>
       </div>
 
-      <!-- Draw offer banner -->
-      <div class="draw-offer-banner" *ngIf="state && state.drawOfferedToMe">
-        <span>Opponent offers a draw</span>
-        <button class="btn-accept" (click)="acceptDraw()">Accept</button>
-        <button class="btn-decline" (click)="declineDraw()">Decline</button>
-      </div>
+      <!-- RIGHT PANEL (Desktop: Players Info + Draw offer + Controls) -->
+      <div class="game-panel right-panel">
+        
+        <!-- Players Section (Desktop view) -->
+        <div class="panel-card players-card desktop-only" *ngIf="state">
+          <div class="card-header">
+            <span class="card-title">👥 Match Players</span>
+          </div>
+          
+          <!-- Opponent Item -->
+          <div class="player-item" [class.turn-active]="state.phase !== 'Finished' && state.currentTurn !== state.yourColor">
+            <div class="player-avatar opponent-avatar">{{ initialChar(state.opponentName) }}</div>
+            <div class="player-meta">
+              <span class="p-name">{{ state.opponentName || 'Opponent' }}</span>
+              <span class="p-color">{{ opponentColor }}</span>
+            </div>
+            <div class="turn-badge" *ngIf="state.phase !== 'Finished' && state.currentTurn !== state.yourColor">
+              <div class="turn-pulse"></div> Thinking
+            </div>
+          </div>
 
-      <!-- Action buttons -->
-      <div class="action-buttons" *ngIf="state">
-        <button class="btn-action replay" (click)="triggerReplay()" [disabled]="!lastMove" title="Replay the last move made on the board">
-          ↺ Replay Move
-        </button>
-        <button class="btn-action resign" (click)="confirmResign()" *ngIf="state.phase !== 'Finished'">
-          🏳 Resign
-        </button>
-        <button class="btn-action draw" (click)="offerDraw()" [disabled]="state.drawOfferedToMe" *ngIf="state.phase !== 'Finished'">
-          ½ Offer Draw
-        </button>
-      </div>
+          <div class="vs-divider"><span>VS</span></div>
 
-      <!-- Move history -->
-      <div class="move-history" *ngIf="state && state.moveHistory && state.moveHistory.length > 0">
-        <div class="history-inner">
-          <span *ngFor="let mv of pairedMoves; let i = index" class="move-pair">
-            <span class="move-num">{{ i + 1 }}.</span>
-            <span class="move white">{{ mv[0] }}</span>
-            <span class="move black" *ngIf="mv[1]">{{ mv[1] }}</span>
-          </span>
+          <!-- You Item -->
+          <div class="player-item" [class.turn-active]="state.phase !== 'Finished' && state.currentTurn === state.yourColor">
+            <div class="player-avatar your-avatar">{{ initialChar(state.yourName) }}</div>
+            <div class="player-meta">
+              <span class="p-name">{{ state.yourName }} (You)</span>
+              <span class="p-color">{{ state.yourColor }}</span>
+            </div>
+            <div class="turn-badge your-badge" *ngIf="state.phase !== 'Finished' && state.currentTurn === state.yourColor">
+              <div class="turn-pulse"></div> Your Turn
+            </div>
+          </div>
         </div>
+
+        <!-- Draw offer banner -->
+        <div class="draw-offer-banner" *ngIf="state && state.drawOfferedToMe">
+          <span>Opponent offers a draw</span>
+          <div class="draw-actions">
+            <button class="btn-accept" (click)="acceptDraw()">Accept</button>
+            <button class="btn-decline" (click)="declineDraw()">Decline</button>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="panel-card actions-card" *ngIf="state">
+          <div class="card-header desktop-only">
+            <span class="card-title">⚡ Controls</span>
+          </div>
+          <div class="action-buttons">
+            <button class="btn-action replay" (click)="triggerReplay()" [disabled]="!lastMove" title="Replay the last move made on the board">
+              ↺ Replay Move
+            </button>
+            <button class="btn-action resign" (click)="confirmResign()" *ngIf="state.phase !== 'Finished'">
+              🏳 Resign
+            </button>
+            <button class="btn-action draw" (click)="offerDraw()" [disabled]="state.drawOfferedToMe" *ngIf="state.phase !== 'Finished'">
+              ½ Offer Draw
+            </button>
+          </div>
+        </div>
+
       </div>
 
       <!-- Resign Confirmation Dialog -->
@@ -129,6 +215,7 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
           </div>
         </div>
       </div>
+
     </div>
   `,
   styles: [`
@@ -150,16 +237,133 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     .game-layout {
       position: relative;
       z-index: 1;
-      display: flex; flex-direction: column; align-items: center; justify-content: space-evenly;
-      gap: 0.25rem; padding: 0.25rem 0.5rem; max-width: 600px; margin: 0 auto;
-      height: 100dvh; max-height: 100dvh; box-sizing: border-box; overflow: hidden;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      box-sizing: border-box;
+      height: 100dvh;
+      max-height: 100dvh;
+      padding: 0.5rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-evenly;
+      overflow: hidden;
     }
+
+    /* DESKTOP 3-COLUMN LAYOUT (>= 900px) */
+    @media (min-width: 900px) {
+      .game-layout {
+        display: grid;
+        grid-template-columns: 270px minmax(360px, 580px) 270px;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+        padding: 1rem 1.5rem;
+      }
+
+      .mobile-only { display: none !important; }
+      .desktop-only { display: flex !important; }
+
+      .game-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        width: 100%;
+        height: 100%;
+        justify-content: center;
+      }
+
+      .left-panel { justify-content: center; }
+      .center-panel { justify-content: center; align-items: center; gap: 0.5rem; }
+      .right-panel { justify-content: center; }
+
+      .actions-card .action-buttons {
+        flex-direction: column;
+        width: 100%;
+        gap: 0.65rem;
+      }
+      .btn-action {
+        width: 100%;
+        padding: 0.65rem 1rem;
+        font-size: 0.9rem;
+        justify-content: center;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+    }
+
+    /* MOBILE LAYOUT (< 900px) */
+    @media (max-width: 899px) {
+      .game-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        max-width: 540px;
+        justify-content: space-evenly;
+      }
+
+      .desktop-only { display: none !important; }
+      .mobile-only { display: flex !important; }
+
+      .game-panel { width: 100%; }
+
+      .left-panel { order: 5; } /* Move history at bottom */
+      .center-panel { order: 1; display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+      .right-panel { order: 4; } /* Action buttons above history */
+
+      .actions-card { background: transparent !important; border: none !important; padding: 0 !important; box-shadow: none !important; }
+      .action-buttons { display: flex; gap: 0.5rem; width: 100%; justify-content: center; }
+      .btn-action { padding: 0.4rem 0.9rem; font-size: 0.82rem; }
+    }
+
+    /* Common Card & Panel Styles */
+    .panel-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 1.25rem;
+      padding: 1rem;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding-bottom: 0.5rem; margin-bottom: 0.2rem;
+    }
+    .card-title {
+      font-size: 0.8rem; font-weight: 800; color: #f0c040;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .move-count { font-size: 0.75rem; color: #808898; font-weight: 600; }
+
+    .move-history-scroll {
+      max-height: 240px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+    .history-grid { display: flex; flex-direction: column; gap: 0.35rem; }
+    .move-row {
+      display: grid; grid-template-columns: 2rem 1fr 1fr; align-items: center;
+      font-family: monospace; font-size: 0.88rem; padding: 0.2rem 0.4rem;
+      border-radius: 0.4rem; background: rgba(0,0,0,0.15);
+    }
+    .move-num { color: #606878; font-size: 0.78rem; }
+    .move.white { color: #e8e8e8; font-weight: 600; }
+    .move.black { color: #a0a8b8; }
+    .no-moves-msg { color: #606878; font-size: 0.85rem; font-style: italic; text-align: center; padding: 1rem 0; }
+
     .player-bar { width: 100%; display: flex; flex-direction: column; gap: 0.15rem; }
     .player-info { display: flex; align-items: center; gap: 0.5rem; }
     .player-avatar {
       width: 32px; height: 32px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.9rem; font-weight: 700;
+      font-size: 0.9rem; font-weight: 700; flex-shrink: 0;
     }
     .opponent-avatar { background: linear-gradient(135deg,#4060c0,#204080); color: #fff; }
     .your-avatar     { background: linear-gradient(135deg,#c06040,#804020); color: #fff; }
@@ -207,6 +411,7 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
       width: 100%; box-sizing: border-box;
     }
     .draw-offer-banner span { flex: 1; }
+    .draw-actions { display: flex; gap: 0.4rem; }
     .btn-accept, .btn-decline {
       padding: 0.3rem 0.75rem; border-radius: 0.5rem; border: none;
       font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit;
@@ -214,7 +419,6 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     .btn-accept  { background: #40d060; color: #111; }
     .btn-decline { background: rgba(255,255,255,0.08); color: #e8e8e8; border: 1px solid rgba(255,255,255,0.15); }
 
-    .action-buttons { display: flex; gap: 0.5rem; width: 100%; justify-content: center; }
     .btn-action {
       padding: 0.4rem 1rem; border-radius: 0.75rem; border: none;
       font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit;
@@ -228,33 +432,37 @@ import { ChessBoardComponent } from '../chess-board/chess-board.component';
     .btn-action.draw    { background: rgba(100,180,100,0.12); color: #80d080; border: 1px solid rgba(100,180,100,0.25); }
     .btn-action.draw:hover:not(:disabled)    { background: rgba(100,180,100,0.22); }
 
-    .move-history {
-      width: 100%; max-height: 42px; overflow-y: auto;
-      background: rgba(0,0,0,0.2); border-radius: 0.5rem; padding: 0.25rem 0.5rem;
-      box-sizing: border-box;
+    .player-item {
+      display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem;
+      border-radius: 0.75rem; background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.05); transition: all 0.2s;
     }
-    .history-inner { display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; }
-    .move-pair { display: flex; gap: 0.3rem; align-items: baseline; }
-    .move-num { color: #606878; font-size: 0.78rem; }
-    .move { font-size: 0.85rem; font-family: monospace; color: #d0d4df; }
-    .move.white { color: #e8e8e8; }
-    .move.black { color: #a0a8b8; }
+    .player-item.turn-active {
+      border-color: rgba(240,192,64,0.3); background: rgba(240,192,64,0.06);
+      box-shadow: 0 0 12px rgba(240,192,64,0.15);
+    }
+    .player-meta { flex: 1; display: flex; flex-direction: column; }
+    .p-name { font-weight: 700; color: #e8e8e8; font-size: 0.9rem; }
+    .p-color { font-size: 0.7rem; color: #808898; text-transform: uppercase; letter-spacing: 0.05em; }
+    .vs-divider {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; font-weight: 800; color: #606878; letter-spacing: 0.1em;
+      margin: -0.25rem 0;
+    }
 
-    @media (max-width: 480px) {
-      .game-layout { padding: 0.35rem 0.5rem; gap: 0.35rem; }
-      .player-bar { gap: 0.15rem; }
-      .player-avatar { width: 28px; height: 28px; font-size: 0.85rem; }
-      .player-name { font-size: 0.82rem; }
-      .player-color { font-size: 0.65rem; }
-      .turn-indicator { font-size: 0.72rem; min-width: 65px; }
-      .captured-pieces { min-height: 1rem; }
-      .cap-piece { font-size: 0.95rem; }
-      .status-banner { font-size: 0.82rem; padding: 0.25rem 1rem; }
-      .btn-action { font-size: 0.8rem; padding: 0.4rem 0.9rem; }
-      .move-history { max-height: 55px; padding: 0.3rem 0.5rem; }
-      .move-num { font-size: 0.7rem; }
-      .move { font-size: 0.76rem; }
+    .turn-badge {
+      display: flex; align-items: center; gap: 0.35rem; font-size: 0.72rem;
+      font-weight: 700; color: #60a5fa; background: rgba(96,165,250,0.12);
+      padding: 0.2rem 0.5rem; border-radius: 1rem; border: 1px solid rgba(96,165,250,0.25);
     }
+    .turn-badge.your-badge {
+      color: #f0c040; background: rgba(240,192,64,0.12); border-color: rgba(240,192,64,0.25);
+    }
+
+    .cap-group { display: flex; flex-direction: column; gap: 0.2rem; }
+    .cap-label { font-size: 0.72rem; color: #808898; text-transform: uppercase; }
+    .cap-icons { display: flex; flex-wrap: wrap; gap: 0.15rem; min-height: 1.2rem; align-items: center; }
+    .none-text { font-size: 0.75rem; color: #505868; font-style: italic; }
 
     /* Resign Dialog */
     .resign-overlay {
@@ -380,13 +588,24 @@ export class GamePhaseComponent implements OnInit, OnDestroy {
   private adjustBoardSize(): void {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const maxW = Math.floor((vw - 44) / 8);
-    const maxH = Math.floor((vh - 340) / 8);
-    const calculated = Math.min(maxW, maxH);
 
-    if (vw < 480) this.squareSize = Math.max(28, Math.min(40, calculated));
-    else if (vw < 768) this.squareSize = Math.max(38, Math.min(54, calculated));
-    else this.squareSize = Math.max(50, Math.min(72, calculated));
+    if (vw >= 900) {
+      const availableW = Math.min(560, vw - 600);
+      const maxW = Math.floor(availableW / 8);
+      const maxH = Math.floor((vh - 100) / 8);
+      const calculated = Math.min(maxW, maxH);
+      this.squareSize = Math.max(50, Math.min(70, calculated));
+    } else if (vw < 480) {
+      const maxW = Math.floor((vw - 24) / 8);
+      const maxH = Math.floor((vh - 310) / 8);
+      const calculated = Math.min(maxW, maxH);
+      this.squareSize = Math.max(30, Math.min(42, calculated));
+    } else {
+      const maxW = Math.floor((vw - 44) / 8);
+      const maxH = Math.floor((vh - 320) / 8);
+      const calculated = Math.min(maxW, maxH);
+      this.squareSize = Math.max(40, Math.min(56, calculated));
+    }
   }
 
   async onSquareClick(e: { row: number; col: number; algebraic: string }): Promise<void> {
