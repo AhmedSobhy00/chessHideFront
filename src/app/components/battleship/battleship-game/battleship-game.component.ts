@@ -18,7 +18,12 @@ interface FleetStatusItem {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="game-container" (contextmenu)="$event.preventDefault()">
+    <div
+      class="game-container"
+      [class.your-turn-glow]="isYourTurn"
+      [class.enemy-turn-glow]="isOpponentTurn"
+      (contextmenu)="$event.preventDefault()"
+    >
       <!-- Top Dual Tactical HUD (Your Fleet & Enemy Fleet Status) -->
       <div class="tactical-hud" *ngIf="state">
         <!-- MY FLEET -->
@@ -27,18 +32,22 @@ interface FleetStatusItem {
           <div class="fleet-diagrams">
             <div
               *ngFor="let item of myFleetStatus"
-              class="ship-status-pill"
+              class="ship-status-card"
               [class.sunk]="item.isSunk"
-              [title]="item.name + ' (' + item.remainingCells + '/' + item.totalCells + ')'"
+              [title]="item.name + ' (' + (item.isSunk ? 'SUNK' : item.remainingCells + '/' + item.totalCells + ' operational') + ')'"
             >
-              <div class="ship-icon-mini">{{ item.icon }}</div>
-              <div class="block-bar">
-                <span
-                  *ngFor="let b of getArray(item.totalCells); let idx = index"
-                  class="block-cell"
-                  [class.damaged]="idx >= item.remainingCells"
-                ></span>
+              <div class="ship-shape-grid">
+                <div *ngFor="let row of getShipShapeMatrix(item.type)" class="mini-shape-row">
+                  <span
+                    *ngFor="let filled of row"
+                    class="mini-shape-cell"
+                    [class.empty]="!filled"
+                    [class.alive]="filled && !item.isSunk"
+                    [class.dead]="filled && item.isSunk"
+                  ></span>
+                </div>
               </div>
+              <span class="ship-name-micro">{{ item.name }}</span>
             </div>
           </div>
         </div>
@@ -51,18 +60,22 @@ interface FleetStatusItem {
           <div class="fleet-diagrams">
             <div
               *ngFor="let item of enemyFleetStatus"
-              class="ship-status-pill enemy-pill"
+              class="ship-status-card enemy-card"
               [class.sunk]="item.isSunk"
-              [title]="item.name + ' (' + (item.isSunk ? 'Sunk' : item.totalCells + ' cells') + ')'"
+              [title]="item.name + ' (' + (item.isSunk ? 'SUNK' : 'Operational') + ')'"
             >
-              <div class="ship-icon-mini">{{ item.icon }}</div>
-              <div class="block-bar">
-                <span
-                  *ngFor="let b of getArray(item.totalCells)"
-                  class="block-cell enemy-block"
-                  [class.sunk-block]="item.isSunk"
-                ></span>
+              <div class="ship-shape-grid">
+                <div *ngFor="let row of getShipShapeMatrix(item.type)" class="mini-shape-row">
+                  <span
+                    *ngFor="let filled of row"
+                    class="mini-shape-cell"
+                    [class.empty]="!filled"
+                    [class.alive-enemy]="filled && !item.isSunk"
+                    [class.dead]="filled && item.isSunk"
+                  ></span>
+                </div>
               </div>
+              <span class="ship-name-micro">{{ item.name }}</span>
             </div>
           </div>
         </div>
@@ -147,7 +160,7 @@ interface FleetStatusItem {
           </div>
         </div>
 
-        <!-- MY FLEET VIEW (Your Ocean - Fully Visible Fleet Ships) -->
+        <!-- MY FLEET VIEW (Your Ocean - Fully Visible Fleet Ships as Colored Metallic Blocks) -->
         <div class="ocean-grid-container" *ngIf="activeView === 'fleet'">
           <div class="col-labels">
             <span *ngFor="let c of cols">{{ c }}</span>
@@ -166,8 +179,7 @@ interface FleetStatusItem {
                   [class.cell-miss]="state.yourGrid[r][c] === 'Miss'"
                   [class.cell-sunk]="state.yourGrid[r][c] === 'Sunk'"
                 >
-                  <!-- Visible Ship Icon & Artwork -->
-                  <span *ngIf="hasYourShipAt(r, c)" class="ship-graphic">{{ getShipIconAt(r, c) }}</span>
+                  <!-- Visible Metallic Blocks (No Emojis), Hit / Miss Markers on top -->
                   <span *ngIf="state.yourGrid[r][c] === 'Miss'" class="marker-miss">✕</span>
                   <span *ngIf="state.yourGrid[r][c] === 'Hit'" class="marker-hit">🔴</span>
                   <span *ngIf="state.yourGrid[r][c] === 'Sunk'" class="marker-sunk">✕</span>
@@ -201,7 +213,17 @@ interface FleetStatusItem {
     .game-container {
       display: flex; flex-direction: column; align-items: center; justify-content: space-between;
       padding: 0.6rem 0.5rem; min-height: 100dvh; box-sizing: border-box; background: #0b132b; color: #e8e8e8;
-      user-select: none;
+      user-select: none; transition: background 0.6s ease, box-shadow 0.6s ease;
+    }
+
+    .game-container.your-turn-glow {
+      background: radial-gradient(circle at 50% 20%, #082942 0%, #0b132b 85%);
+      box-shadow: inset 0 0 70px rgba(0, 240, 255, 0.22);
+    }
+
+    .game-container.enemy-turn-glow {
+      background: radial-gradient(circle at 50% 20%, #3a1c06 0%, #0b132b 85%);
+      box-shadow: inset 0 0 70px rgba(255, 140, 0, 0.24);
     }
 
     /* Tactical Dual HUD */
@@ -211,25 +233,43 @@ interface FleetStatusItem {
       border-radius: 1.25rem; padding: 0.5rem 0.85rem; width: 100%; max-width: 440px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.6); margin-bottom: 0.3rem; box-sizing: border-box;
     }
-    .hud-box { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; }
+    .hud-box { display: flex; flex-direction: column; gap: 0.3rem; flex: 1; }
     .hud-label { font-size: 0.65rem; font-weight: 900; color: #00f0ff; letter-spacing: 0.1em; }
     .hud-label.enemy-label { color: #ff9900; }
     
-    .fleet-diagrams { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; }
-    .ship-status-pill { display: flex; align-items: center; gap: 2px; opacity: 1; transition: opacity 0.3s; }
-    .ship-status-pill.sunk { opacity: 0.35; filter: grayscale(1); }
-    .ship-icon-mini { font-size: 0.8rem; line-height: 1; }
-
-    .block-bar { display: flex; gap: 2px; }
-    .block-cell {
-      width: 6px; height: 12px; background: #ff9900; border-radius: 2px;
-      box-shadow: 0 0 4px rgba(255,153,0,0.5);
+    .fleet-diagrams { display: flex; gap: 0.35rem; align-items: flex-end; justify-content: space-between; }
+    .ship-status-card {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(0, 240, 255, 0.25);
+      border-radius: 0.4rem; padding: 0.25rem 0.3rem; transition: all 0.3s ease; flex: 1;
     }
-    .block-cell.damaged { background: #ff3333; box-shadow: 0 0 4px rgba(255,51,51,0.5); }
-    .enemy-block { background: #00f0ff; box-shadow: 0 0 4px rgba(0,240,255,0.5); }
-    .enemy-block.sunk-block { background: #ff3333; box-shadow: 0 0 4px rgba(255,51,51,0.5); }
+    .ship-status-card.enemy-card { border-color: rgba(255, 170, 0, 0.25); }
+    .ship-status-card.sunk {
+      border-color: rgba(255, 60, 60, 0.3); background: rgba(30, 0, 0, 0.4);
+      opacity: 0.35; filter: grayscale(0.8);
+    }
+    .ship-name-micro {
+      font-size: 0.52rem; font-weight: 800; color: #8a99ad; text-transform: uppercase;
+      letter-spacing: 0.03em; line-height: 1;
+    }
 
-    .hud-divider { width: 1px; height: 32px; background: rgba(0, 240, 255, 0.25); }
+    .mini-shape-grid { display: flex; flex-direction: column; gap: 2px; }
+    .mini-shape-row { display: flex; gap: 2px; justify-content: center; }
+    .mini-shape-cell {
+      width: 7px; height: 7px; border-radius: 1.5px; box-sizing: border-box;
+    }
+    .mini-shape-cell.empty { visibility: hidden; }
+    .mini-shape-cell.alive {
+      background: #00f0ff; box-shadow: 0 0 5px #00f0ff;
+    }
+    .mini-shape-cell.alive-enemy {
+      background: #ffaa00; box-shadow: 0 0 5px #ffaa00;
+    }
+    .mini-shape-cell.dead {
+      background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .hud-divider { width: 1px; height: 36px; background: rgba(0, 240, 255, 0.25); }
 
     /* Ocean Switcher Pills */
     .ocean-switcher {
@@ -283,8 +323,12 @@ interface FleetStatusItem {
     .radar-cell.clickable { cursor: crosshair; }
     .radar-cell.clickable:hover { background: rgba(0,240,255,0.25); border-color: #00f0ff; }
 
-    .fleet-cell.has-ship { background: rgba(0,240,255,0.25); border-color: rgba(0,240,255,0.5); }
-    .ship-graphic { font-size: 1.1rem; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); position: absolute; z-index: 1; }
+    /* Metallic Colored Square Blocks for Fleet Grid (No Emojis, Always Visible) */
+    .fleet-cell.has-ship {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.5) 0%, rgba(0, 130, 230, 0.4) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.75);
+      box-shadow: inset 0 0 8px rgba(0, 240, 255, 0.45);
+    }
 
     /* Crisp Hit & Miss Markers */
     .marker-miss {
@@ -392,7 +436,7 @@ export class BattleshipGameComponent implements OnInit, OnDestroy {
         totalCells: getShipRelativeCells(t, false).length,
         remainingCells: getShipRelativeCells(t, false).length,
         isSunk: false,
-        icon: this.getShipIconByType(t)
+        icon: ''
       }));
     }
 
@@ -406,7 +450,7 @@ export class BattleshipGameComponent implements OnInit, OnDestroy {
         totalCells: total,
         remainingCells: rem,
         isSunk: s.isSunk || rem === 0,
-        icon: this.getShipIconByType(s.type)
+        icon: ''
       };
     });
   }
@@ -422,9 +466,37 @@ export class BattleshipGameComponent implements OnInit, OnDestroy {
         totalCells: total,
         remainingCells: isSunk ? 0 : total,
         isSunk: isSunk,
-        icon: this.getShipIconByType(t)
+        icon: ''
       };
     });
+  }
+
+  getShipShapeMatrix(type: ShipType): boolean[][] {
+    switch (type) {
+      case 'Carrier':
+        return [
+          [true, true, true],
+          [true, true, true]
+        ];
+      case 'Cruiser':
+        return [
+          [true, true, true],
+          [false, true, false]
+        ];
+      case 'Battleship':
+        return [
+          [true, true, true, true]
+        ];
+      case 'Submarine':
+        return [
+          [true, true, true]
+        ];
+      case 'Destroyer':
+      default:
+        return [
+          [true, true]
+        ];
+    }
   }
 
   hasYourShipAt(r: number, c: number): boolean {
@@ -432,31 +504,10 @@ export class BattleshipGameComponent implements OnInit, OnDestroy {
     if (this.state.yourGrid && (this.state.yourGrid[r][c] === 'Ship' || this.state.yourGrid[r][c] === 'Hit' || this.state.yourGrid[r][c] === 'Sunk')) {
       return true;
     }
-    if (this.state.yourShips) {
+    if (this.state.yourShips && this.state.yourShips.length > 0) {
       return this.state.yourShips.some(s => s.occupiedCells.some(cell => cell.row === r && cell.col === c));
     }
     return false;
-  }
-
-  getShipIconAt(r: number, c: number): string {
-    if (!this.state || !this.state.yourShips) return '🚢';
-    const ship = this.state.yourShips.find(s => s.occupiedCells.some(cell => cell.row === r && cell.col === c));
-    return ship ? this.getShipIconByType(ship.type) : '🚢';
-  }
-
-  getShipIconByType(type: ShipType): string {
-    switch (type) {
-      case 'Carrier': return '🚢';
-      case 'Battleship': return '🛳️';
-      case 'Cruiser': return '🛥️';
-      case 'Submarine': return '🌊';
-      case 'Destroyer': return '⛵';
-      default: return '🚢';
-    }
-  }
-
-  getArray(count: number): number[] {
-    return Array(count).fill(0);
   }
 
   async fireShot(row: number, col: number): Promise<void> {

@@ -72,11 +72,11 @@ export interface BattleshipGameState {
 export function getShipRelativeCells(type: ShipType, isVertical: boolean): Coordinate[] {
   const cells: Coordinate[] = [];
   switch (type) {
-    case 'Carrier': // 5 cells (3 hull + 2 deck extension)
+    case 'Carrier': // 6 cells (3 hull + 3 deck extension)
       if (!isVertical) {
-        cells.push({ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 2 }, { row: 1, col: 0 }, { row: 1, col: 1 });
+        cells.push({ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 0, col: 2 }, { row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 });
       } else {
-        cells.push({ row: 0, col: 0 }, { row: 1, col: 0 }, { row: 2, col: 0 }, { row: 0, col: 1 }, { row: 1, col: 1 });
+        cells.push({ row: 0, col: 0 }, { row: 1, col: 0 }, { row: 2, col: 0 }, { row: 0, col: 1 }, { row: 1, col: 1 }, { row: 2, col: 1 });
       }
       break;
 

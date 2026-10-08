@@ -18,9 +18,12 @@ interface ShipConfig {
   template: `
     <div class="setup-container" (contextmenu)="$event.preventDefault()">
       <div class="setup-header">
-        <div class="header-badge">FLEET DEPLOYMENT</div>
+        <div class="header-badges">
+          <span class="header-badge">FLEET DEPLOYMENT</span>
+          <span class="timer-badge" [class.urgent]="timeLeft <= 10">⏳ {{ formattedTime }}</span>
+        </div>
         <h2>Position Your Fleet</h2>
-        <p>Left-click to place • <b>Right-click anywhere or press Rotate</b> to change orientation (↔ / ↕)</p>
+        <p>Left-click to place • <b>Right-click</b> to rotate • Lock when ready</p>
       </div>
 
       <div class="setup-layout">
@@ -86,7 +89,6 @@ interface ShipConfig {
                   (click)="onCellClick(r, c)"
                   (contextmenu)="onRightClick($event, r, c)"
                 >
-                  <span class="cell-content" *ngIf="hasShipAt(r, c)">🚢</span>
                 </div>
               </div>
             </div>
@@ -107,11 +109,17 @@ interface ShipConfig {
       user-select: none;
     }
     .setup-header { text-align: center; margin-bottom: 0.4rem; }
+    .header-badges { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.2rem; }
     .header-badge {
       display: inline-block; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.15em;
       color: #00f0ff; background: rgba(0,240,255,0.1); border: 1px solid rgba(0,240,255,0.3);
-      padding: 0.2rem 0.6rem; border-radius: 1rem; margin-bottom: 0.2rem;
+      padding: 0.2rem 0.6rem; border-radius: 1rem;
     }
+    .timer-badge {
+      font-size: 0.8rem; font-weight: 900; color: #ffaa00; background: rgba(255,170,0,0.15);
+      border: 1px solid rgba(255,170,0,0.35); padding: 0.2rem 0.6rem; border-radius: 1rem;
+    }
+    .timer-badge.urgent { color: #ff3333; background: rgba(255,51,51,0.2); border-color: #ff3333; animation: pulse 0.6s infinite alternate; }
     .setup-header h2 { margin: 0; font-size: 1.35rem; font-weight: 800; color: #fff; }
     .setup-header p { margin: 0.1rem 0 0; font-size: 0.82rem; color: #8a99ad; }
     .setup-header p b { color: #00f0ff; }
@@ -180,10 +188,13 @@ interface ShipConfig {
       position: relative; transition: background 0.15s;
     }
     .grid-cell:hover { background: rgba(0,240,255,0.15); }
-    .grid-cell.has-ship { background: rgba(0,240,255,0.3); border-color: rgba(0,240,255,0.6); }
+    .grid-cell.has-ship {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.5) 0%, rgba(0, 130, 230, 0.4) 100%);
+      border: 1px solid rgba(0, 240, 255, 0.75);
+      box-shadow: inset 0 0 8px rgba(0, 240, 255, 0.45);
+    }
     .grid-cell.preview-valid { background: rgba(60,220,90,0.4) !important; }
     .grid-cell.preview-invalid { background: rgba(240,60,60,0.5) !important; }
-    .cell-content { font-size: 1.05rem; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
 
     .waiting-banner {
       display: flex; align-items: center; gap: 0.6rem; justify-content: center;
@@ -200,7 +211,7 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
   rows = ['1','2','3','4','5','6','7','8','9','10'];
 
   fleetConfig: ShipConfig[] = [
-    { type: 'Carrier', name: 'Carrier', length: 5, icon: '🚢' },
+    { type: 'Carrier', name: 'Carrier', length: 6, icon: '🚢' },
     { type: 'Battleship', name: 'Battleship', length: 4, icon: '🛳️' },
     { type: 'Cruiser', name: 'Cruiser', length: 4, icon: '🛥️' },
     { type: 'Submarine', name: 'Submarine', length: 3, icon: '🌊' },
@@ -214,11 +225,14 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
   hoveredCell: Coordinate | null = null;
   isPreviewValid = true;
 
+  timeLeft = 60;
+  private timerId: any = null;
   private sub?: Subscription;
 
   constructor(private battleship: BattleshipService) {}
 
   ngOnInit(): void {
+    this.startSetupTimer();
     this.sub = this.battleship.state$.subscribe(s => {
       this.state = s;
       if (s.yourShips && s.yourShips.length > 0) {
@@ -234,12 +248,35 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
     });
   }
 
-  get placedShipsCount(): number {
-    return this.placedShipsMap.size;
+  private startSetupTimer(): void {
+    if (this.timerId) clearInterval(this.timerId);
+    this.timeLeft = 60;
+    this.timerId = setInterval(() => {
+      if (this.timeLeft > 0) {
+        this.timeLeft--;
+      } else {
+        clearInterval(this.timerId);
+        this.onTimerExpired();
+      }
+    }, 1000);
   }
 
-  getShipCellCount(type: ShipType): number {
-    return getShipRelativeCells(type, false).length;
+  private async onTimerExpired(): Promise<void> {
+    if (this.state?.isReady) return;
+    if (this.placedShipsCount < 5) {
+      await this.battleship.randomizeFleet();
+    }
+    await this.lockFleet();
+  }
+
+  get formattedTime(): string {
+    const m = Math.floor(this.timeLeft / 60);
+    const s = this.timeLeft % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  }
+
+  get placedShipsCount(): number {
+    return this.placedShipsMap.size;
   }
 
   isShipPlaced(type: ShipType): boolean {
@@ -251,10 +288,13 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
     this.validatePreview();
   }
 
-  unplaceShip(event: MouseEvent, type: ShipType): void {
+  getShipCellCount(type: ShipType): number {
+    return getShipRelativeCells(type, false).length;
+  }
+
+  unplaceShip(event: Event, type: ShipType): void {
     event.stopPropagation();
     this.placedShipsMap.delete(type);
-    this.selectedShipType = type;
     this.validatePreview();
   }
 
@@ -265,56 +305,7 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
 
   onRightClick(event: MouseEvent, row?: number, col?: number): void {
     event.preventDefault();
-    event.stopPropagation();
-
-    if (row !== undefined && col !== undefined) {
-      // Find ship placed at (row, col)
-      const placedEntry = Array.from(this.placedShipsMap.entries()).find(([_, s]) => {
-        const rel = getShipRelativeCells(s.Type, s.IsVertical);
-        return rel.some(r => (s.StartRow + r.row) === row && (s.StartCol + r.col) === col);
-      });
-
-      if (placedEntry) {
-        const [type, s] = placedEntry;
-        const newVert = !s.IsVertical;
-        // Test if rotated ship is valid at StartRow, StartCol
-        const rel = getShipRelativeCells(type, newVert);
-        let valid = true;
-        for (const rCell of rel) {
-          const r = s.StartRow + rCell.row;
-          const c = s.StartCol + rCell.col;
-          if (r < 0 || r > 9 || c < 0 || c > 9) { valid = false; break; }
-          // Overlap check with other ships
-          Array.from(this.placedShipsMap.entries()).forEach(([otherT, otherS]) => {
-            if (otherT === type) return;
-            const otherRel = getShipRelativeCells(otherS.Type, otherS.IsVertical);
-            if (otherRel.some(or => (otherS.StartRow + or.row) === r && (otherS.StartCol + or.col) === c)) {
-              valid = false;
-            }
-          });
-        }
-
-        if (valid) {
-          s.IsVertical = newVert;
-          this.placedShipsMap.set(type, s);
-          if (this.placedShipsMap.size === 5) {
-            this.battleship.placeFleet(Array.from(this.placedShipsMap.values()));
-          }
-          this.validatePreview();
-          return;
-        }
-      }
-    }
-
-    // Default right-click behavior: toggle current orientation
     this.toggleOrientation();
-  }
-
-  hasShipAt(row: number, col: number): boolean {
-    return Array.from(this.placedShipsMap.values()).some(s => {
-      const rel = getShipRelativeCells(s.Type, s.IsVertical);
-      return rel.some(r => (s.StartRow + r.row) === row && (s.StartCol + r.col) === col);
-    });
   }
 
   onCellHover(row: number, col: number): void {
@@ -328,32 +319,47 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
 
   isPreviewCell(row: number, col: number): boolean {
     if (!this.hoveredCell || !this.selectedShipType) return false;
-    const rel = getShipRelativeCells(this.selectedShipType, this.isVertical);
-    return rel.some(r => (this.hoveredCell!.row + r.row) === row && (this.hoveredCell!.col + r.col) === col);
+    const rels = getShipRelativeCells(this.selectedShipType, this.isVertical);
+    return rels.some(r => this.hoveredCell!.row + r.row === row && this.hoveredCell!.col + r.col === col);
+  }
+
+  hasShipAt(row: number, col: number): boolean {
+    for (const dto of this.placedShipsMap.values()) {
+      const rels = getShipRelativeCells(dto.Type, dto.IsVertical);
+      if (rels.some(r => dto.StartRow + r.row === row && dto.StartCol + r.col === col)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   validatePreview(): void {
-    if (!this.hoveredCell || !this.selectedShipType) return;
-    const rel = getShipRelativeCells(this.selectedShipType, this.isVertical);
-    let valid = true;
-
-    for (const rCell of rel) {
-      const r = this.hoveredCell.row + rCell.row;
-      const c = this.hoveredCell.col + rCell.col;
-
-      if (r < 0 || r > 9 || c < 0 || c > 9) { valid = false; break; }
-
-      // Check overlap with other placed ships (excluding currently selected ship)
-      Array.from(this.placedShipsMap.entries()).forEach(([t, s]) => {
-        if (t === this.selectedShipType) return;
-        const sRel = getShipRelativeCells(s.Type, s.IsVertical);
-        if (sRel.some(sr => (s.StartRow + sr.row) === r && (s.StartCol + sr.col) === c)) {
-          valid = false;
-        }
-      });
+    if (!this.hoveredCell || !this.selectedShipType) {
+      this.isPreviewValid = true;
+      return;
     }
 
-    this.isPreviewValid = valid;
+    const rels = getShipRelativeCells(this.selectedShipType, this.isVertical);
+    for (const r of rels) {
+      const targetRow = this.hoveredCell.row + r.row;
+      const targetCol = this.hoveredCell.col + r.col;
+
+      if (targetRow < 0 || targetRow >= 10 || targetCol < 0 || targetCol >= 10) {
+        this.isPreviewValid = false;
+        return;
+      }
+
+      for (const [shipType, dto] of this.placedShipsMap.entries()) {
+        if (shipType === this.selectedShipType) continue; // Replacing current
+        const existingRels = getShipRelativeCells(dto.Type, dto.IsVertical);
+        if (existingRels.some(er => dto.StartRow + er.row === targetRow && dto.StartCol + er.col === targetCol)) {
+          this.isPreviewValid = false;
+          return;
+        }
+      }
+    }
+
+    this.isPreviewValid = true;
   }
 
   onCellClick(row: number, col: number): void {
@@ -373,11 +379,6 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
     }
 
     this.validatePreview();
-
-    // Send to backend only if all 5 ships are placed
-    if (this.placedShipsMap.size === 5) {
-      this.battleship.placeFleet(Array.from(this.placedShipsMap.values()));
-    }
   }
 
   async randomizeFleet(): Promise<void> {
@@ -386,10 +387,13 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
 
   async lockFleet(): Promise<void> {
     if (this.placedShipsCount < 5) return;
+    if (this.timerId) clearInterval(this.timerId);
     await this.battleship.placeFleet(Array.from(this.placedShipsMap.values()));
     await this.battleship.setReady();
   }
 
-  ngOnDestroy(): void { this.sub?.unsubscribe(); }
+  ngOnDestroy(): void {
+    if (this.timerId) clearInterval(this.timerId);
+    this.sub?.unsubscribe();
+  }
 }
-
