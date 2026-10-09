@@ -251,30 +251,35 @@ export class SoundService {
     } catch (e) {}
   }
 
-  // ── Battleship Cannon Hit (Deep Heavy Boom) ────────────────────────────────
+  // ── Battleship Cannon Hit (Deep Heavy Boom with Pitch Variation) ───────────
   playBattleshipHit(): void {
     if (this.isMuted) return;
     try {
       const ctx = this.initCtx();
       const now = ctx.currentTime;
 
+      // Small organic pitch variation (+/- 12%)
+      const pitchFactor = 0.88 + Math.random() * 0.24;
+      const startFreq = 160 * pitchFactor;
+      const filterCutoff = 650 * pitchFactor;
+
       // Sub-bass pitch drop (boom)
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(160, now);
-      osc.frequency.exponentialRampToValueAtTime(25, now + 0.35);
+      osc.frequency.setValueAtTime(startFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(22 * pitchFactor, now + 0.38);
 
-      gain.gain.setValueAtTime(0.7, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      gain.gain.setValueAtTime(0.75, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(now);
-      osc.stop(now + 0.35);
+      osc.stop(now + 0.38);
 
       // Filtered noise burst for explosive impact punch
-      const bufferSize = Math.floor(ctx.sampleRate * 0.25);
+      const bufferSize = Math.floor(ctx.sampleRate * 0.28);
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const data = buffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) {
@@ -286,12 +291,12 @@ export class SoundService {
 
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(600, now);
-      filter.frequency.exponentialRampToValueAtTime(80, now + 0.25);
+      filter.frequency.setValueAtTime(filterCutoff, now);
+      filter.frequency.exponentialRampToValueAtTime(75, now + 0.28);
 
       const noiseGain = ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.6, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      noiseGain.gain.setValueAtTime(0.65, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
 
       noise.connect(filter);
       filter.connect(noiseGain);
@@ -301,14 +306,47 @@ export class SoundService {
     } catch (e) {}
   }
 
-  // ── Battleship Miss (Ocean Water Splash) ──────────────────────────────────
+  // ── Battleship Miss (Authentic Ocean Water Splash & Plop) ─────────────────
   playBattleshipSplash(): void {
     if (this.isMuted) return;
     try {
       const ctx = this.initCtx();
       const now = ctx.currentTime;
 
-      const bufferSize = Math.floor(ctx.sampleRate * 0.3);
+      // 1. Water Drop / Plop Component (Sine drop 850Hz -> 180Hz)
+      const plopPitch = 850 + (Math.random() * 150 - 75);
+      const plopOsc = ctx.createOscillator();
+      const plopGain = ctx.createGain();
+
+      plopOsc.type = 'sine';
+      plopOsc.frequency.setValueAtTime(plopPitch, now);
+      plopOsc.frequency.exponentialRampToValueAtTime(180, now + 0.09);
+
+      plopGain.gain.setValueAtTime(0.4, now);
+      plopGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+      plopOsc.connect(plopGain);
+      plopGain.connect(ctx.destination);
+      plopOsc.start(now);
+      plopOsc.stop(now + 0.09);
+
+      // 2. Secondary Bubble Pop (delayed slightly for wet splatter effect)
+      const popOsc = ctx.createOscillator();
+      const popGain = ctx.createGain();
+      popOsc.type = 'triangle';
+      popOsc.frequency.setValueAtTime(1100, now + 0.03);
+      popOsc.frequency.exponentialRampToValueAtTime(280, now + 0.11);
+
+      popGain.gain.setValueAtTime(0.25, now + 0.03);
+      popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+
+      popOsc.connect(popGain);
+      popGain.connect(ctx.destination);
+      popOsc.start(now + 0.03);
+      popOsc.stop(now + 0.11);
+
+      // 3. Ocean Water Spray Noise Burst (Bandpass filtered noise sweep)
+      const bufferSize = Math.floor(ctx.sampleRate * 0.32);
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const data = buffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) {
@@ -320,19 +358,18 @@ export class SoundService {
 
       const filter = ctx.createBiquadFilter();
       filter.type = 'bandpass';
-      filter.Q.value = 3;
-      filter.frequency.setValueAtTime(400, now);
-      filter.frequency.linearRampToValueAtTime(1800, now + 0.08);
-      filter.frequency.exponentialRampToValueAtTime(200, now + 0.3);
+      filter.Q.value = 2.5;
+      filter.frequency.setValueAtTime(2200, now);
+      filter.frequency.exponentialRampToValueAtTime(350, now + 0.28);
 
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.01, now);
-      gain.gain.linearRampToValueAtTime(0.45, now + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.01, now);
+      noiseGain.gain.linearRampToValueAtTime(0.5, now + 0.04);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
 
       noise.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
+      filter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
 
       noise.start(now);
     } catch (e) {}
@@ -355,14 +392,18 @@ export class SoundService {
     try {
       const ctx = this.initCtx();
       const now = ctx.currentTime;
-      const duration = isFinal ? 0.6 : 0.4;
-      const startFreq = isFinal ? 190 : 140 + Math.random() * 30;
+      const duration = isFinal ? 0.65 : 0.42;
+
+      // Small organic pitch variation for each boom in the cascade (+/- 15%)
+      const pitchFactor = 0.85 + Math.random() * 0.30;
+      const startFreq = (isFinal ? 210 : 150) * pitchFactor;
+      const filterCutoff = (isFinal ? 850 : 550) * pitchFactor;
 
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(startFreq, now);
-      osc.frequency.exponentialRampToValueAtTime(20, now + duration);
+      osc.frequency.exponentialRampToValueAtTime(18 * pitchFactor, now + duration);
 
       gain.gain.setValueAtTime(isFinal ? 0.85 : 0.6, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
@@ -385,8 +426,8 @@ export class SoundService {
 
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(isFinal ? 800 : 500, now);
-      filter.frequency.exponentialRampToValueAtTime(50, now + duration);
+      filter.frequency.setValueAtTime(filterCutoff, now);
+      filter.frequency.exponentialRampToValueAtTime(45, now + duration);
 
       const noiseGain = ctx.createGain();
       noiseGain.gain.setValueAtTime(isFinal ? 0.75 : 0.5, now);

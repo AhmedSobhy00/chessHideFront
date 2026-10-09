@@ -58,6 +58,7 @@ export interface BattleshipGameState {
   winnerPlayerId?: string | null;
   winnerName?: string | null;
   finishReason?: string | null;
+  enemyShips?: any[];
   lastShotDetails?: {
     shooterPlayerId: string;
     row: number;

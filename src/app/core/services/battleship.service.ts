@@ -166,8 +166,12 @@ export class BattleshipService implements OnDestroy {
       const hitState: CellState = e.isSunk ? 'Sunk' : (e.isHit ? 'Hit' : 'Miss');
 
       if (e.isSunk && e.sunkShipCells) {
-        e.sunkShipCells.forEach((c: Coordinate) => {
-          targetGrid[c.row][c.col] = 'Sunk';
+        e.sunkShipCells.forEach((c: any) => {
+          const r = c.row ?? c.Row;
+          const col = c.col ?? c.Col;
+          if (r !== undefined && col !== undefined) {
+            targetGrid[r][col] = 'Sunk';
+          }
         });
         const count = e.sunkShipCells.length || 4;
         this.sound.playShipDestroyed(count);
@@ -216,7 +220,8 @@ export class BattleshipService implements OnDestroy {
           phase: 'Finished',
           winnerPlayerId: e.winnerPlayerId,
           winnerName: e.winnerName,
-          finishReason: e.reason
+          finishReason: e.reason,
+          enemyShips: e.enemyShips || []
         });
       }, 1200);
     });

@@ -10,7 +10,15 @@ import { BattleshipGameState } from '../../../models/battleship.model';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="result-overlay" *ngIf="state && state.phase === 'Finished'">
+    <!-- Minimized floating bar when viewing board -->
+    <div class="minimized-bar" *ngIf="minimized && state && state.phase === 'Finished'" (click)="minimized = false">
+      <span class="mini-icon">{{ isWinner ? '🏆' : '💀' }}</span>
+      <span class="mini-title">{{ isWinner ? 'VICTORY!' : 'DEFEAT' }}</span>
+      <span class="mini-action">Click to expand summary ⤢</span>
+    </div>
+
+    <!-- Full result overlay -->
+    <div class="result-overlay" *ngIf="!minimized && state && state.phase === 'Finished'">
       <div class="result-card" [class.win]="isWinner" [class.loss]="!isWinner">
         <div class="banner-icon">{{ isWinner ? '🏆' : '💀' }}</div>
         <h2 class="title">{{ isWinner ? 'VICTORY!' : 'DEFEAT' }}</h2>
@@ -23,14 +31,29 @@ import { BattleshipGameState } from '../../../models/battleship.model';
         </div>
 
         <div class="actions">
+          <button class="btn btn-secondary" (click)="minimized = true">
+            👁️ View Board & Enemy Ships
+          </button>
           <button class="btn btn-primary" (click)="returnToLobby()">
-            ⚓ Return to Fleet Command
+            ⚓ Fleet Command
           </button>
         </div>
       </div>
     </div>
   `,
   styles: [`
+    .minimized-bar {
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+      background: #0d1b3e; border: 1.5px solid #00f0ff;
+      border-radius: 2rem; padding: 0.6rem 1.5rem; display: flex; align-items: center; gap: 0.75rem;
+      cursor: pointer; z-index: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes slideUp { from { transform: translateX(-50%) translateY(30px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+    .mini-icon { font-size: 1.2rem; }
+    .mini-title { font-weight: 800; color: #00f0ff; font-size: 0.95rem; }
+    .mini-action { color: #8a99ad; font-size: 0.82rem; font-weight: 600; }
+
     .result-overlay {
       position: fixed; inset: 0; background: rgba(5, 10, 25, 0.88); backdrop-filter: blur(10px);
       z-index: 500; display: flex; align-items: center; justify-content: center; padding: 1.5rem;
@@ -61,15 +84,20 @@ import { BattleshipGameState } from '../../../models/battleship.model';
 
     .actions { display: flex; flex-direction: column; gap: 0.65rem; }
     .btn {
-      padding: 0.85rem 1.5rem; border-radius: 0.75rem; border: none; font-size: 1rem;
+      padding: 0.85rem 1.5rem; border-radius: 0.75rem; border: none; font-size: 0.95rem;
       font-weight: 800; cursor: pointer; transition: all 0.2s; font-family: inherit;
     }
+    .btn-secondary {
+      background: rgba(0,240,255,0.15); border: 1px solid rgba(0,240,255,0.35); color: #00f0ff;
+    }
+    .btn-secondary:hover { background: rgba(0,240,255,0.28); transform: translateY(-2px); }
     .btn-primary { background: linear-gradient(135deg, #00f0ff, #0088cc); color: #0b132b; }
     .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,240,255,0.4); }
   `]
 })
 export class BattleshipResultComponent implements OnInit, OnDestroy {
   state: BattleshipGameState | null = null;
+  minimized = false;
   private sub?: Subscription;
 
   constructor(

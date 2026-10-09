@@ -124,6 +124,12 @@ interface FleetStatusItem {
                   [class.cell-hit]="state.targetRadar[r][c] === 'Hit'"
                   [class.cell-miss]="state.targetRadar[r][c] === 'Miss'"
                   [class.cell-sunk]="state.targetRadar[r][c] === 'Sunk'"
+                  [class.enemy-ship-revealed]="state.phase === 'Finished' && isEnemyShipCellAt(r, c) && state.targetRadar[r][c] !== 'Sunk'"
+                  [class.ship-carrier]="state.phase === 'Finished' && getEnemyShipTypeAt(r, c) === 'Carrier'"
+                  [class.ship-battleship]="state.phase === 'Finished' && getEnemyShipTypeAt(r, c) === 'Battleship'"
+                  [class.ship-cruiser]="state.phase === 'Finished' && getEnemyShipTypeAt(r, c) === 'Cruiser'"
+                  [class.ship-submarine]="state.phase === 'Finished' && getEnemyShipTypeAt(r, c) === 'Submarine'"
+                  [class.ship-destroyer]="state.phase === 'Finished' && getEnemyShipTypeAt(r, c) === 'Destroyer'"
                   [class.clickable]="isYourTurn && state.targetRadar[r][c] === 'Empty'"
                   (click)="fireShot(r, c)"
                 >
@@ -131,6 +137,7 @@ interface FleetStatusItem {
                   <span *ngIf="state.targetRadar[r][c] === 'Miss'" class="marker-miss">✕</span>
                   <span *ngIf="state.targetRadar[r][c] === 'Hit'" class="marker-hit">🔴</span>
                   <span *ngIf="state.targetRadar[r][c] === 'Sunk'" class="marker-sunk">✕</span>
+                  <span *ngIf="state.phase === 'Finished' && isEnemyShipCellAt(r, c) && state.targetRadar[r][c] === 'Empty'" class="marker-revealed">🚢</span>
                 </div>
               </div>
             </div>
@@ -490,7 +497,15 @@ export class BattleshipGameComponent implements OnInit, OnDestroy {
     const ships: ShipType[] = ['Carrier', 'Battleship', 'Cruiser', 'Submarine', 'Destroyer'];
     return ships.map(t => {
       const total = getShipRelativeCells(t, false).length;
-      const isSunk = this.sunkEnemyShipTypes.has(t);
+      let isSunk = this.sunkEnemyShipTypes.has(t);
+
+      if (!isSunk && this.state?.enemyShips && this.state.enemyShips.length > 0) {
+        const enemyObj = this.state.enemyShips.find((s: any) => (s.type || s.Type) === t);
+        if (enemyObj) {
+          isSunk = enemyObj.isSunk || enemyObj.IsSunk || false;
+        }
+      }
+
       return {
         type: t,
         name: t,
@@ -500,6 +515,23 @@ export class BattleshipGameComponent implements OnInit, OnDestroy {
         icon: ''
       };
     });
+  }
+
+  isEnemyShipCellAt(r: number, c: number): boolean {
+    if (!this.state?.enemyShips || this.state.enemyShips.length === 0) return false;
+    return this.state.enemyShips.some((s: any) => {
+      const cells = s.occupiedCells || s.OccupiedCells || [];
+      return cells.some((cell: any) => (cell.row ?? cell.Row) === r && (cell.col ?? cell.Col) === c);
+    });
+  }
+
+  getEnemyShipTypeAt(r: number, c: number): ShipType | null {
+    if (!this.state?.enemyShips || this.state.enemyShips.length === 0) return null;
+    const ship = this.state.enemyShips.find((s: any) => {
+      const cells = s.occupiedCells || s.OccupiedCells || [];
+      return cells.some((cell: any) => (cell.row ?? cell.Row) === r && (cell.col ?? cell.Col) === c);
+    });
+    return ship ? (ship.type || ship.Type) : null;
   }
 
   getShipShapeMatrix(type: ShipType): boolean[][] {

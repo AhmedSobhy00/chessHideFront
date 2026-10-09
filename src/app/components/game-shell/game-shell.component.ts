@@ -37,7 +37,10 @@ import { SoundService } from '../../core/services/sound.service';
       <!-- Direct Share Link Join Screen -->
       <div class="direct-join-overlay" *ngIf="urlGameId && (!state || !state.gameId)">
         <div class="join-card">
-          <div class="game-badge">GAME #{{ urlGameId }}</div>
+          <div class="card-top-row">
+            <div class="game-badge">GAME #{{ urlGameId }}</div>
+            <button class="btn-home-mini" (click)="leaveGame()" title="Return to Home">🏠 Home</button>
+          </div>
           <h2>Join Hidden Chess Game</h2>
           <p>You have been invited to play! Enter your name to start.</p>
           <div class="form-group">
@@ -155,10 +158,17 @@ import { SoundService } from '../../core/services/sound.service';
       animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     @keyframes popIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .card-top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+    .btn-home-mini {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 9999px; color: #a0a8b8; padding: 0.2rem 0.65rem; font-size: 0.72rem;
+      font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    .btn-home-mini:hover { background: rgba(255,255,255,0.18); color: #fff; transform: translateY(-1px); }
     .game-badge {
       display: inline-block; padding: 0.3rem 0.8rem; border-radius: 2rem;
       background: rgba(64,160,240,0.15); color: #40a0f0; border: 1px solid rgba(64,160,240,0.3);
-      font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 1rem;
+      font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em;
     }
     .join-card h2 { color: #e8e8e8; margin: 0 0 0.5rem; font-weight: 800; font-size: 1.5rem; }
     .join-card p { color: #a0a8b8; font-size: 0.9rem; margin: 0 0 1.5rem; }

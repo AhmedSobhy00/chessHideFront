@@ -27,7 +27,10 @@ import { GameState } from '../../models/game.model';
         
         <!-- Header & Code -->
         <div class="lobby-header">
-          <div class="lobby-badge">MATCH LOBBY</div>
+          <div class="header-top-row">
+            <div class="lobby-badge">MATCH LOBBY</div>
+            <button class="btn-home-icon" (click)="cancel()" title="Return to Home">🏠 Home</button>
+          </div>
           <h2>Game Code</h2>
           <div class="game-id-box">
             <span class="game-id">{{ state?.gameId }}</span>
@@ -142,6 +145,13 @@ import { GameState } from '../../models/game.model';
     }
 
     .lobby-header { text-align: center; }
+    .header-top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem; }
+    .btn-home-icon {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 9999px; color: #a0a8b8; padding: 0.2rem 0.65rem; font-size: 0.72rem;
+      font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    .btn-home-icon:hover { background: rgba(255,255,255,0.18); color: #fff; transform: translateY(-1px); }
     .lobby-badge {
       display: inline-block;
       font-size: 0.68rem;
@@ -152,7 +162,6 @@ import { GameState } from '../../models/game.model';
       border: 1px solid rgba(240,192,64,0.25);
       padding: 0.15rem 0.5rem;
       border-radius: 1rem;
-      margin-bottom: 0.25rem;
     }
     h2 { margin: 0 0 0.5rem; color: #a0a8b8; font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 

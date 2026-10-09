@@ -31,7 +31,10 @@ import { BattleshipResultComponent } from '../battleship-result/battleship-resul
       <!-- Direct Share Link Join Screen -->
       <div class="direct-join-overlay" *ngIf="urlGameId && (!state || !state.gameId)">
         <div class="join-card">
-          <div class="badge">BATTLE ROOM #{{ urlGameId }}</div>
+          <div class="card-top-row">
+            <div class="badge">BATTLE ROOM #{{ urlGameId }}</div>
+            <button class="btn-home-mini" (click)="leave()" title="Return to Home">🏠 Home</button>
+          </div>
           <h2>Join Battleship Match</h2>
           <p>You have been invited to naval battle! Enter your commander name to join.</p>
           <div class="form-group">
@@ -57,7 +60,10 @@ import { BattleshipResultComponent } from '../battleship-result/battleship-resul
         <!-- Waiting for 2nd player -->
         <div class="waiting-room-overlay" *ngIf="state.phase === 'WaitingForPlayers' && state.gameId">
           <div class="waiting-card">
-            <div class="badge">BATTLE ROOM</div>
+            <div class="card-top-row">
+              <div class="badge">BATTLE ROOM</div>
+              <button class="btn-home-mini" (click)="leave()" title="Return to Home">🏠 Home</button>
+            </div>
             <h2>Game Code</h2>
             <div class="game-id-box">
               <span class="game-id">{{ state.gameId }}</span>
@@ -127,7 +133,14 @@ import { BattleshipResultComponent } from '../battleship-result/battleship-resul
       padding: 1.75rem 1.6rem; max-width: 400px; width: 100%; text-align: center; color: #e8e8e8;
       box-shadow: 0 20px 60px rgba(0,0,0,0.7); display: flex; flex-direction: column; gap: 0.85rem;
     }
-    .waiting-card .badge { display: inline-block; font-size: 0.7rem; font-weight: 800; color: #00f0ff; letter-spacing: 0.15em; margin-bottom: 0.2rem; }
+    .card-top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.2rem; }
+    .btn-home-mini {
+      background: rgba(0,240,255,0.12); border: 1px solid rgba(0,240,255,0.3);
+      border-radius: 9999px; color: #00f0ff; padding: 0.2rem 0.65rem; font-size: 0.72rem;
+      font-weight: 800; cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    .btn-home-mini:hover { background: rgba(0,240,255,0.25); color: #fff; transform: translateY(-1px); }
+    .waiting-card .badge { display: inline-block; font-size: 0.7rem; font-weight: 800; color: #00f0ff; letter-spacing: 0.15em; }
     .waiting-card h2 { margin: 0; font-size: 0.82rem; color: #8a99ad; text-transform: uppercase; letter-spacing: 0.05em; }
     .waiting-card p { color: #8a99ad; font-size: 0.85rem; margin: 0; }
 
