@@ -381,32 +381,70 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
     return getShipRelativeCells(type, false).length;
   }
 
-  getShipShapeMatrix(type: ShipType): boolean[][] {
+  getShipShapeMatrix(type: ShipType, isVertical: boolean = this.isVertical): boolean[][] {
+    let base: boolean[][];
     switch (type) {
       case 'Carrier':
-        return [
+        base = [
           [true, true, true, false],
           [false, true, true, true]
         ];
+        break;
       case 'Cruiser':
-        return [
+        base = [
           [true, true, true],
           [false, true, false]
         ];
+        break;
       case 'Battleship':
-        return [
+        base = [
           [true, true, true, true]
         ];
+        break;
       case 'Submarine':
-        return [
+        base = [
           [true, true, true]
         ];
+        break;
       case 'Destroyer':
       default:
-        return [
+        base = [
           [true, true]
         ];
+        break;
     }
+
+    if (!isVertical) return base;
+
+    // Transpose matrix for vertical orientation
+    const rows = base.length;
+    const cols = base[0].length;
+    const transposed: boolean[][] = [];
+    for (let c = 0; c < cols; c++) {
+      const newRow: boolean[] = [];
+      for (let r = 0; r < rows; r++) {
+        newRow.push(base[r][c]);
+      }
+      transposed.push(newRow);
+    }
+    return transposed;
+  }
+
+  getGhostShapeHtml(type: ShipType, isVertical: boolean = this.isVertical): string {
+    const matrix = this.getShipShapeMatrix(type, isVertical);
+    let rowsHtml = '';
+    for (const row of matrix) {
+      let cellsHtml = '';
+      for (const filled of row) {
+        if (filled) {
+          cellsHtml += `<span style="width:16px; height:16px; background:linear-gradient(135deg,#00f0ff,#0088cc); border:1.5px solid #00f0ff; border-radius:2px; box-shadow:0 0 8px rgba(0,240,255,0.8); display:inline-block; box-sizing:border-box;"></span>`;
+        } else {
+          cellsHtml += `<span style="width:16px; height:16px; display:inline-block; visibility:hidden; box-sizing:border-box;"></span>`;
+        }
+      }
+      rowsHtml += `<div style="display:flex; gap:2px; justify-content:center;">${cellsHtml}</div>`;
+    }
+    return `<div style="display:flex; flex-direction:column; gap:2px; padding:6px; background:rgba(5,12,30,0.92); border:2px solid #00f0ff; border-radius:8px; box-shadow:0 0 20px rgba(0,240,255,0.7); backdrop-filter:blur(6px);">${rowsHtml}</div>`;
   }
 
   unplaceShip(event: Event, type: ShipType): void {
@@ -436,6 +474,7 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
     event.dataTransfer?.setData('text/plain', type);
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
+      this.setDesktopDragImage(event, type);
     }
   }
 
@@ -452,8 +491,21 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
       event.dataTransfer?.setData('text/plain', type);
       if (event.dataTransfer) {
         event.dataTransfer.effectAllowed = 'move';
+        this.setDesktopDragImage(event, type);
       }
     }
+  }
+
+  private setDesktopDragImage(event: DragEvent, type: ShipType): void {
+    if (!event.dataTransfer) return;
+    const ghost = document.createElement('div');
+    ghost.style.position = 'absolute';
+    ghost.style.top = '-9999px';
+    ghost.style.left = '-9999px';
+    ghost.innerHTML = this.getGhostShapeHtml(type, this.isVertical);
+    document.body.appendChild(ghost);
+    event.dataTransfer.setDragImage(ghost, 20, 20);
+    setTimeout(() => ghost.remove(), 0);
   }
 
   onCellDragOver(event: DragEvent, row: number, col: number): void {
@@ -619,32 +671,21 @@ export class BattleshipSetupComponent implements OnInit, OnDestroy {
     this.removeGhostShip();
     const ghost = document.createElement('div');
     ghost.className = 'touch-ship-ghost';
-    ghost.innerHTML = `<span style="font-size:1.1rem;">🚀</span> <b>${type}</b>`;
+    ghost.innerHTML = this.getGhostShapeHtml(type, this.isVertical);
     ghost.style.position = 'fixed';
-    ghost.style.left = `${x - 45}px`;
-    ghost.style.top = `${y - 45}px`;
+    ghost.style.left = `${x}px`;
+    ghost.style.top = `${y}px`;
+    ghost.style.transform = 'translate(-50%, -50%)';
     ghost.style.zIndex = '9999';
     ghost.style.pointerEvents = 'none';
-    ghost.style.background = 'rgba(0, 240, 255, 0.25)';
-    ghost.style.border = '2px solid #00f0ff';
-    ghost.style.color = '#ffffff';
-    ghost.style.padding = '6px 14px';
-    ghost.style.borderRadius = '10px';
-    ghost.style.fontFamily = 'sans-serif';
-    ghost.style.fontSize = '0.82rem';
-    ghost.style.boxShadow = '0 0 20px rgba(0, 240, 255, 0.7)';
-    ghost.style.backdropFilter = 'blur(6px)';
-    ghost.style.display = 'flex';
-    ghost.style.alignItems = 'center';
-    ghost.style.gap = '6px';
     document.body.appendChild(ghost);
     this.touchGhostEl = ghost;
   }
 
   private updateGhostPosition(x: number, y: number): void {
     if (this.touchGhostEl) {
-      this.touchGhostEl.style.left = `${x - 45}px`;
-      this.touchGhostEl.style.top = `${y - 45}px`;
+      this.touchGhostEl.style.left = `${x}px`;
+      this.touchGhostEl.style.top = `${y}px`;
     }
   }
 

@@ -258,8 +258,8 @@ export class SoundService {
       const ctx = this.initCtx();
       const now = ctx.currentTime;
 
-      // Small organic pitch variation (+/- 12%)
-      const pitchFactor = 0.88 + Math.random() * 0.24;
+      // Subtle organic pitch variants around base frequency (+/- 3.5%)
+      const pitchFactor = 0.965 + Math.random() * 0.07;
       const startFreq = 160 * pitchFactor;
       const filterCutoff = 650 * pitchFactor;
 
