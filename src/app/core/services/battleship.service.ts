@@ -119,7 +119,8 @@ export class BattleshipService implements OnDestroy {
         opponentName: e.opponentName || '',
         isHost: true,
         isBotGame: !!e.isBotGame,
-        phase: e.isBotGame ? 'Setup' : 'WaitingForPlayers'
+        phase: e.isBotGame ? 'Setup' : 'WaitingForPlayers',
+        lastShotDetails: null
       });
       this.saveSession(e.gameId, e.playerId);
       this.router.navigate(['/battleship/game', e.gameId]);
@@ -132,7 +133,8 @@ export class BattleshipService implements OnDestroy {
         yourName: e.yourName,
         opponentName: e.opponentName,
         isHost: false,
-        phase: 'Setup'
+        phase: 'Setup',
+        lastShotDetails: null
       });
       this.saveSession(e.gameId, e.playerId);
     });
@@ -156,7 +158,8 @@ export class BattleshipService implements OnDestroy {
         phase: 'Playing',
         currentTurnPlayerId: e.firstTurnPlayerId,
         yourName: this.state.yourName || e.hostName,
-        opponentName: this.state.opponentName || e.guestName
+        opponentName: this.state.opponentName || e.guestName,
+        lastShotDetails: null
       });
     });
 

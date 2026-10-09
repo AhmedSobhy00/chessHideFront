@@ -424,15 +424,30 @@ export class BattleshipGameComponent implements OnInit, OnDestroy {
 
   constructor(private battleship: BattleshipService) {}
 
+  private lastProcessedShotKey: string | null = null;
+  private currentTrackedGameId: string | null = null;
+
   ngOnInit(): void {
     this.sub = this.battleship.state$.subscribe(s => {
       const prevTurn = this.state?.currentTurnPlayerId;
       this.state = s;
 
-      if (s?.lastShotDetails) {
+      // Reset sunkEnemyShipTypes if game ID changed or back in Setup/Waiting
+      if (s && (s.gameId !== this.currentTrackedGameId || s.phase === 'Setup' || s.phase === 'WaitingForPlayers')) {
+        this.sunkEnemyShipTypes.clear();
+        this.lastProcessedShotKey = null;
+        this.currentTrackedGameId = s.gameId || null;
+      }
+
+      if (s?.lastShotDetails && s?.playerId) {
         const d = s.lastShotDetails;
-        if (d.isSunk && d.sunkShipType) {
-          this.sunkEnemyShipTypes.add(d.sunkShipType as ShipType);
+        const shotKey = `${d.shooterPlayerId}_${d.row}_${d.col}_${d.isSunk}`;
+        if (shotKey !== this.lastProcessedShotKey) {
+          this.lastProcessedShotKey = shotKey;
+          // CRITICAL FIX: Only register sunk ship on ENEMY fleet HUD if YOU fired the shot that sunk it!
+          if (d.shooterPlayerId === s.playerId && d.isSunk && d.sunkShipType) {
+            this.sunkEnemyShipTypes.add(d.sunkShipType as ShipType);
+          }
         }
       }
 
